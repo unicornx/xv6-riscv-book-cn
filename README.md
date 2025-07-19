@@ -27,6 +27,8 @@ August 31, 2024
 
 本仓库的翻译风格追求以意译为主，直译为辅，即更多追求内容的准确和阅读的流畅，一些觉得原文没有说清楚或者感觉有问题的，以译者注的方式补充在原文中。同时为方便大家核对翻译，在译文之外保留了原文英文内容。欢迎大家一起学习，如果问题欢迎提 issue 或者联系我：Chen Wang <unicorn_wang@outlook.com>。
 
+最后衷心感谢 MIT 6.1810 课程的所有编写者和教学团队！这门课程精心设计的内容让我们对操作系统有了更深入的理解。同时也感谢他们的无私奉献和开源精神，将这门精彩的课程完整公开给全球的学习者。
+
 [1]:https://pdos.csail.mit.edu/6.828/2024/xv6/book-riscv-rev4.pdf
 [2]:https://github.com/mit-pdos/xv6-riscv
 [3]:https://github.com/mit-pdos/xv6-riscv-book
