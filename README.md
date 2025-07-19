@@ -23,7 +23,9 @@ August 31, 2024
 - [xv6-riscv-book 书源码仓库][3] e2d964e "x"
 - [xv6-riscv 代码仓库][2] de247db "menvcfg also"
 
-本仓库所有内容遵循 [xv6-riscv-book 书源码仓库][3] 相同的 [版权许可](./LICENSE)。
+本仓库所有内容遵循 [xv6-riscv-book 书源码仓库][3] 相同的 [版权许可](./LICENSE)。同时为方便中国大陆读者访问，本仓库有一个 Gitee 的 mirror 在：<https://gitee.com/unicornx/xv6-riscv-book-cn>。
+
+本仓库的翻译风格追求以意译为主，直译为辅，即更多追求内容的准确和阅读的流畅，一些觉得原文没有说清楚或者感觉有问题的，以译者注的方式补充在原文中。同时为方便大家核对翻译，在译文之外保留了原文英文内容。欢迎大家一起学习，如果问题欢迎提 issue 或者联系我：Chen Wang <unicorn_wang@outlook.com>。
 
 [1]:https://pdos.csail.mit.edu/6.828/2024/xv6/book-riscv-rev4.pdf
 [2]:https://github.com/mit-pdos/xv6-riscv
