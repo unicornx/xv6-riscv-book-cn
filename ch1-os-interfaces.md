@@ -10,21 +10,21 @@
 
 > This book uses a single operating system as a concrete example to illustrate operating system concepts. That operating system, xv6, provides the basic interfaces introduced by Ken Thompson and Dennis Ritchie’s Unix operating system [17], as well as mimicking Unix’s internal design. Unix provides a narrow interface whose mechanisms combine well, offering a surprising degree of generality. This interface has been so successful that modern operating systems—BSD, Linux, macOS, Solaris, and even, to a lesser extent, Microsoft Windows—have Unix-like interfaces. Understanding xv6 is a good start toward understanding any of these systems and many others.
 
-本书以一个操作系统作为具体的例子来阐述操作系统的概念。这个操作系统就是 xv6，它提供了 Ken Thompson 和 Dennis Ritchie 在开发 Unix 时引入的一套基本的接口 [17]，同时模仿了 Unix 的内部设计。Unix 提供了一套很精简的接口，通过组合使用这套接口，可以实现令人惊讶的通用性。这个接口非常成功，现代的操作系统，譬如 BSD、Linux、Mac OSX、Solaris，甚至在一定程度上，连 Microsoft 的 Windows 都提供了这些和 Unix 相似的接口（统称为 Unix-like interfaces）。学好 xv6 能为理解这些系统和其他更多的系统打下良好的基础。
+本书以一个操作系统作为具体的例子来阐述操作系统的概念。这个操作系统就是 xv6，它提供了 Ken Thompson 和 Dennis Ritchie 在开发 Unix 时引入的一套基本的接口 [17]，同时模仿了 Unix 的内部设计。Unix 提供了一套很精简的接口，通过组合使用这套接口，可以实现令人惊讶的通用性。这个接口非常成功，现代的操作系统，譬如 BSD、Linux、Mac OSX、Solaris，甚至在一定程度上，连 Microsoft 的 Windows 都提供了这些 “和 Unix 相似的接口（Unix-like interfaces）”。学好 xv6 能为理解这些系统和其他更多的系统打下良好的基础。
 
 ![](./figures/figure-1.1.png)
 
 > As Figure 1.1 shows, xv6 takes the traditional form of a kernel, a special program that provides services to running programs. Each running program, called a process, has memory containing instructions, data, and a stack. The instructions implement the program’s computation. The data are the variables on which the computation acts. The stack organizes the program’s procedure calls. A given computer typically has many processes but only a single kernel.
 
-如图 1.1 所示，xv6 采用传统的 “内核（kernel）” 实现形式，内核可以看成是一个特殊的 “程序（program）”，为其他正在运行的程序提供服务。每个正在运行的程序，称为 “进程（process）”，都拥有一块自己的内存，进程的 “指令（instructions）”、“数据（data）” 和 “栈（stack）” 都存放在这块内存中。程序的计算功能通过指令实现，数据是计算操作的变量，程序的 “过程调用（procedure calls）” 通过栈进行组织。一台给定的计算机上通常运行有多个进程，但同时只会运行一个内核。
+如图 1.1 所示，xv6 采用传统的 “内核（kernel）” 实现形式，内核可以看成是一个特殊的 “程序（program）”，为其他正在运行的程序提供服务。每个正在运行的程序，称为 “进程（process）”，都拥有一块自己的内存，进程的 “指令（instructions）”、“数据（data）” 和 “栈（stack）” 都存放在这块内存中。程序的计算功能通过指令实现，数据是计算操作的变量，程序的 “过程调用（procedure calls）” （译者注，即我们常说的函数调用）通过栈进行组织。一台给定的计算机上通常运行有多个进程，但同时只会运行一个内核。
 
 > When a process needs to invoke a kernel service, it invokes a system call, one of the calls in the operating system’s interface. The system call enters the kernel; the kernel performs the service and returns. Thus a process alternates between executing in user space and kernel space.
 
-当一个进程需要请求一个内核服务时，它会调用一个 “系统调用（system call）”，而系统调用就是操作系统所提供的一套接口中的一个实例。内核执行系统调用，完成服务并返回。因此，我们可以认为一个进程在 “用户空间（user space）” 和 “内核空间（kernel space）” 之间交替运行。
+当一个进程需要请求一个内核服务时，它会调用一个 “系统调用（system call）”，而每个系统调用就是操作系统所提供的一套接口中的一个实例。内核执行系统调用，完成服务并返回。因此，我们可以认为一个进程在 “用户空间（user space）” 和 “内核空间（kernel space）” 之间交替运行。
 
-> As described in detail in subsequent chapters, the kernel uses the hardware protection mechanisms provided by a CPU to ensure that each process executing in user space can access only its own memory. The kernel executes with the hardware privileges required to implement these protections; user programs execute without those privileges. When a user program invokes a system call, the hardware raises the privilege level and starts executing a pre-arranged function in the kernel.
+> As described in detail in subsequent chapters, the kernel uses the hardware protection mechanisms provided by a CPU (This text generally refers to the hardware element that executes a computation with the term CPU, an acronym) to ensure that each process executing in user space can access only its own memory. The kernel executes with the hardware privileges required to implement these protections; user programs execute without those privileges. When a user program invokes a system call, the hardware raises the privilege level and starts executing a pre-arranged function in the kernel.
 
-正如在接下里的章节中所介绍的那样，内核使用 CPU 提供的硬件保护机制来确保每个在用户空间执行的进程只能访问它自己的内存。内核运行时拥有访问硬件的权限，这实现了对硬件的保护；而用户程序执行时没有这些权限。当用户程序调用系统调用时，硬件会提升权限级别，并开始执行内核中预先安排好的函数。
+正如在接下里的章节中所介绍的那样，内核使用 CPU (本文通常用 “CPU” 来指代执行计算的硬件元素，这是一个术语) 提供的硬件保护机制来确保每个在用户空间执行的进程只能访问它自己的内存。内核运行时拥有访问硬件的权限，这实现了对硬件的保护；而用户程序执行时没有这些权限。当用户程序调用系统调用时，硬件会提升权限级别，并开始执行内核中预先安排好的函数。
 
 > The collection of system calls that a kernel provides is the interface that user programs see. The xv6 kernel provides a subset of the services and system calls that Unix kernels traditionally offer.
 
@@ -34,17 +34,21 @@
 
 本章的其余部分概述了 xv6 中有关进程、内存、文件描述符、管道和文件系统的服务，并给出了相关的代码片段，同时还讨论了 shell（Unix 的命令行用户界面）以及如何使用它们。通过学习 shell 是如何使用这些系统调用的可以帮助我们理解这些接口是如何被精心设计的。
 
-> The shell is an ordinary program that reads commands from the user and executes them. The fact that the shell is a user program, and not part of the kernel, illustrates the power of the system call interface: there is nothing special about the shell. It also means that the shell is easy to replace; as a result, modern Unix systems have a variety of shells to choose from, each with its own user interface and scripting features. The xv6 shell is a simple implementation of the essence of the Unix Bourne shell. Its implementation can be found at (user/sh.c:1).
+> The shell is an ordinary program that reads commands from the user and executes them. The fact that the shell is a user program, and not part of the kernel, illustrates the power of the system call interface: there is nothing special about the shell. It also means that the shell is easy to replace; as a result, modern Unix systems have a variety of shells to choose from, each with its own user interface and scripting features. The xv6 shell is a simple implementation of the essence of the Unix Bourne shell.
 
-Shell 是一个普通的程序，它从用户那里读取命令并执行它们。Shell 是一个用户态程序，而不是内核的一部分，这一事实说明了系统调用接口的强大之处：shell 没有什么特别之处。这也意味着 shell 很容易被替换；因此，现代 Unix 系统有多种 shell 可供选择，每种 shell 的操作界面和对脚本的支持都各有各的特色。xv6 的 shell 是 Unix Bourne shell 的简单实现。具体实现可以阅读代码 (user/sh.c:1)。
+Shell 是一个普通的程序，它从用户那里读取命令并执行它们。Shell 是一个用户态程序，而不是内核的一部分，这一事实说明了系统调用接口的强大之处：shell 没有什么特别之处。这也意味着 shell 很容易被替换；因此，现代 Unix 系统有多种 shell 可供选择，每种 shell 的操作界面和对脚本的支持都各有各的特色。xv6 的 shell 是 Unix Bourne shell 的简单实现。
+
+> The implementation of the xv6 shell can be found at (7850). (The link is a hyperlink to the relevant xv6 source code at https://github.com/mit-pdos/xv6-riscv/ and the specific number refers to the sheet and line number in xv6-src-booklet.pdf, as in the Lions’ Commentary on UNIX 6th Edition [11]. A good practice is to try to read the source code first on your own (in your favorite development environment, on github, or in a PDF viewer) and then come back to this book. By the end of this book you should be able to understand every line of xv6 source code without having to consult this book.
+
+xv6 shell 的实现可以在 (7850) 找到。该链接是指向相关 xv6 源代码的超链接，地址是 <https://github.com/mit-pdos/xv6-riscv/>，具体编号指的是 xv6-src-booklet.pdf 中的工作表和行号，类似于 Lions 的《UNIX 第六版评注》[11]。）一个好的做法是先自己尝试阅读源代码（在你最喜欢的开发环境中、在 GitHub 上或使用 PDF 阅读器），然后再回过头来阅读本书。读完本书后，你应该能够理解 xv6 源代码的每一行，而无需查阅本书。（译者注：原文 PDF 的行号，譬如 “7850” 是一个超链接，但译文这里暂不支持，仅列出行号，读者可以在 xv6-src-booklet.pdf 中搜索该行号值找到对应代码行。）
 
 ## 1.1 进程和内存（Processes and memory）
 
 > An xv6 process consists of user-space memory (instructions, data, and stack) and per-process state private to the kernel. Xv6 *time-shares* processes: it transparently switches the available CPUs among the set of processes waiting to execute. When a process is not executing, xv6 saves the process’s CPU registers, restoring them when it next runs the process. The kernel associates a process identifier, or `PID`, with each process.
 
-一个 xv6 进程由用户空间内存（用于存放指令、数据和实现栈）以及内核私有的每个进程的状态组成。xv6 对进程进行 *分时共享（time-shares）*：它透明地在等待执行的多个进程之间切换 CPU。当某个进程未执行时，xv6 会保存该进程的 CPU 寄存器值，并在下次运行该进程时恢复它们。内核为每个进程指定一个 “进程标识符（process identifier）”，即 `PID`。
+一个 xv6 进程由用户空间内存（用于存放指令、数据和实现栈）以及内核私有的每个进程的状态组成。xv6 对进程实现 *分时共享（time-shares）*，也就是说，它透明地在等待执行的多个进程之间切换 CPU。当某个进程不再使用 CPU 时，xv6 会保存该进程的 CPU 寄存器值，并在下次运行该进程时恢复它们。内核为每个进程指定一个 “进程标识符（process identifier）”，即 `PID`。
 
-> A process may create a new process using the `fork` system call. `fork` gives the new process an exact copy of the calling process’s memory: it copies the instructions, data, and stack of the calling process into the new process’s memory. `fork` returns in both the original and new processes. In the original process, `fork` returns the new process’s PID. In the new process, `fork` returns zero. The original and new processes are often called the *parent* and *child*.
+> A process may create a new process using the `fork` system call. `fork` gives the new process an exact copy of the calling process’s memory: `fork` copies the instructions, data, and stack of the calling process into the new process’s memory. `fork` returns in both the original and new processes. In the original process, `fork` returns the new process’s PID. In the new process, `fork` returns zero. The original and new processes are often called the *parent* and *child*.
 
 一个进程可以调用系统调用 `fork` 创建一个新的进程。`fork` 会将调用进程的内存中的内容完整地复制一份到新建进程的内存中：复制的内容包括调用进程的指令、数据和栈。`fork` 在原进程和新进程中都会返回。在原进程中，`fork` 返回新进程的 PID。在新进程中，`fork` 返回零。原进程和新进程通常被称为 *父进程（parent）* 和 *子进程（child）*。
 
@@ -89,9 +93,9 @@ child: exiting
 parent: child 1234 is done
 ```
 
-> Although the child has the same memory contents as the parent initially, the parent and child are executing with separate memory and separate registers: changing a variable in one does not affect the other. For example, when the return value of `wait` is stored into `pid` in the parent process, it doesn’t change the variable `pid` in the child. The value of `pid` in the child will still be zero.
+> Although the child starts with a copy of the parent’s memory, the parent and child execute with separate memory and separate registers: changing a variable in one does not affect the other. For example, when the return value of `wait` is stored into `pid` in the parent process, it doesn’t change the variable `pid` in the child. The value of `pid` in the child will still be zero.
 
-尽管子进程最初与父进程拥有相同的内存内容，但父进程和子进程在不同的内存和寄存器中执行：更改其中一个进程的变量不会影响另一个进程。例如，当 `wait` 的返回值存储到父进程的 `pid` 中时，它不会更改子进程中的变量 `pid`。子进程中的 `pid` 值仍然为零。
+尽管子进程开始运行时拥有一个父进程内存的副本，但父进程和子进程在不同的内存和寄存器中执行：更改其中一个进程的变量不会影响另一个进程。例如，当 `wait` 的返回值存储到父进程的 `pid` 中时，它不会更改子进程中的变量 `pid`。子进程中的 `pid` 值仍然为零。
 
 > The `exec` system call replaces the calling process’s memory with a new memory image loaded from a file stored in the file system. The file must have a particular format, which specifies which part of the file holds instructions, which part is data, at which instruction to start, etc. Xv6 uses the ELF format, which Chapter 3 discusses in more detail. Usually the file is the result of compiling a program’s source code. When `exec` succeeds, it does not return to the calling program; instead, the instructions loaded from the file start executing at the entry point declared in the ELF header. `exec` takes two arguments: the name of the file containing the executable and an array of string arguments. For example:
 
@@ -111,13 +115,13 @@ printf("exec error\n");
 
 此代码片段将调用程序替换为程序 `/bin/echo` 的实例，该实例运行时使用参数列表 `echo hello`。大多数程序会忽略参数数组的第一个元素，通常情况下，该元素是程序的名称。
 
-> The xv6 shell uses the above calls to run programs on behalf of users. The main structure of the shell is simple; see `main` (user/sh.c:146). The main loop reads a line of input from the user with `getcmd`. Then it calls fork, which creates a copy of the shell process. The parent calls `wait`, while the child runs the command. For example, if the user had typed “`echo hello`” to the shell, `runcmd` would have been called with “`echo hello`” as the argument. `runcmd` (user/sh.c:55) runs the actual command. For “`echo hello`”, it would call `exec` (user/sh.c:79). If `exec` succeeds then the child will execute instructions from `echo` instead of `runcmd`. At some point `echo` will call `exit`, which will cause the parent to return from `wait` in `main` (user/sh.c:146).
+> The xv6 shell uses the above calls to run programs on behalf of users. The main structure of the shell is simple; see `main` (8001). The main loop reads a line of input from the user with `getcmd`. Then it calls `fork`, which creates a copy of the shell process. The parent calls `wait`, while the child runs the command. For example, if the user had typed “`echo hello`” to the shell, `runcmd` would have been called with “`echo hello`” as the argument. `runcmd` (7903) runs the actual command. For “`echo hello`”, it would call `exec` (7927). If `exec` succeeds then the child will execute instructions from `echo` instead of `runcmd`. At some point `echo` will call `exit`, which will cause the parent to return from `wait` in `main` (8001).
 
-xv6 的 shell 使用上述调用来代表用户运行程序。shell 的主要结构很简单；参见 `main` (user/sh.c:146)。主循环使用 `getcmd` 从用户那里读取一行输入。然后它调用 fork，创建 shell 进程的副本。父进程调用 `wait`，而子进程运行命令。例如，如果用户在 shell 中输入了“echo hello”，则会以 “`echo hello`” 作为参数调用 `runcmd`。`runcmd` (user/sh.c:55) 运行实际命令。对于 “`echo hello`”，它将调用 `exec` (user/sh.c:79)。如果 `exec` 成功，则子进程将执行来自 `echo` 而不是 `runcmd` 的指令。在某些时候，`echo` 将调用 `exit`，这将导致父进程从 `main` 中的 `wait` 返回（user/sh.c:146）。
+xv6 的 shell 使用上述调用来代表用户运行程序。shell 的主要结构很简单；参见 `main` (8001)。主循环使用 `getcmd` 从用户那里读取一行输入。然后它调用 `fork`，创建 shell 进程的副本。父进程调用 `wait`，而子进程运行命令。例如，如果用户在 shell 中输入了“echo hello”，则会以 “`echo hello`” 作为参数调用 `runcmd`。`runcmd` (7903) 运行实际命令。对于 “`echo hello`”，它将调用 `exec` (7927)。如果 `exec` 成功，则子进程将执行来自 `echo` 而不是 `runcmd` 的指令。在某些时候，`echo` 将调用 `exit`，这将导致父进程从 `main`（8001）中的 `wait` 返回。
 
-> You might wonder why `fork` and `exec` are not combined in a single call; we will see later that the shell exploits the separation in its implementation of I/O redirection. To avoid the wastefulness of creating a duplicate process and then immediately replacing it (with `exec`), operating kernels optimize the implementation of `fork` for this use case by using virtual memory techniques such as copy-on-write (see Section 4.6).
+> You might wonder why `fork` and `exec` are not combined in a single call; we will see later that the shell exploits the separation in its implementation of I/O redirection. To avoid the wastefulness of creating a duplicate process and then immediately replacing it (with `exec`), operating kernels optimize the implementation of `fork` for this use case by using virtual memory techniques such as copy-on-write (see Section 5).
 
-你可能想知道为什么 `fork` 和 `exec` 不合并实现为一个系统调用；稍后我们将看到，shell 在实现 “输入/输出重定向（I/O redirection）” 中利用了这种分离设计。为了避免创建并复制进程后立即调用 `exec` 导致进程内存又被替换所导致的浪费，操作系统内核针对这种情况会优化 `fork` 的实现，并使用了虚拟内存技术，例如 “写时复制（copy-on-write）”（具体参见 4.6 节）。
+你可能想知道为什么 `fork` 和 `exec` 不合并实现为一个系统调用；稍后我们将看到，shell 在实现 “输入/输出重定向（I/O redirection）” 中利用了这种分离设计。为了避免创建并复制进程后立即调用 `exec` 导致进程内存又被替换所导致的浪费，操作系统内核针对这种情况会优化 `fork` 的实现，并使用了虚拟内存技术，例如 “写时复制（copy-on-write）”（具体参见第 5 章）。
 
 > Xv6 allocates most user-space memory implicitly: `fork` allocates the memory required for the child’s copy of the parent’s memory, and `exec` allocates enough memory to hold the executable file. A process that needs more memory at run-time (perhaps for `malloc`) can call `sbrk(n)` to grow its data memory by `n` zero bytes; `sbrk` returns the location of the new memory.
 
@@ -127,11 +131,11 @@ xv6 会隐式分配大部分用户空间内存：`fork` 会分配子进程复制
 
 > A *file descriptor* is a small integer representing a kernel-managed object that a process may read from or write to. A process may obtain a file descriptor by opening a file, directory, or device, or by creating a pipe, or by duplicating an existing descriptor. For simplicity we’ll often refer to the object a file descriptor refers to as a “file”; the file descriptor interface abstracts away the differences between files, pipes, and devices, making them all look like streams of bytes. We’ll refer to input and output as *I/O*.
 
-*文件描述符（file descriptor）* 是一个小整数，用来代表一个进程可以对其读取或写入的由内核管理的对象。进程可以通过打开文件、目录或设备，创建管道或复制现有描述符来获取文件描述符。为了简单起见，我们通常将文件描述符所引用的对象称为 “文件（file）”；文件描述符通过抽象隐藏了文件、管道和设备之间的差异，使它们看起来都像字节流。我们将 “输入（input）” 和 “输出（output）” 简称为 *I/O*。
+*文件描述符（file descriptor）* 是一个小整数，用来代表一个进程可以对其读取或写入的由内核管理的对象。进程可以通过打开文件、目录或设备，创建管道或复制现有描述符来获取文件描述符。为了简单起见，我们通常将文件描述符所引用的对象称为 “文件（file）”；文件描述符通过抽象隐藏了文件、管道和设备之间的差异，使它们看起来都像字节流。我们将 “输入（Input）” 和 “输出（Output）” 简称为 *I/O*。
 
-> Internally, the xv6 kernel uses the file descriptor as an index into a per-process table, so that every process has a private space of file descriptors starting at zero. By convention, a process reads from file descriptor 0 (standard input), writes output to file descriptor 1 (standard output), and writes error messages to file descriptor 2 (standard error). As we will see, the shell exploits the convention to implement I/O redirection and pipelines. The shell ensures that it always has three file descriptors open (user/sh.c:152), which are by default file descriptors for the console.
+> Internally, the xv6 kernel uses the file descriptor as an index into a per-process table, so that every process has a private space of file descriptors starting at zero. By convention, a process reads from file descriptor 0 (standard input), writes output to file descriptor 1 (standard output), and writes error messages to file descriptor 2 (standard error). As we will see, the shell exploits the convention to implement I/O redirection and pipelines. The shell ensures that it always has three file descriptors open (8007), which are by default file descriptors for the console.
 
-在内部实现中，xv6 内核使用文件描述符作为一个表的索引（这个表每个进程都有一个），因此每个进程都有一个私有的从零开始的文件描述符空间。按照惯例，进程从文件描述符 0（“标准输入（standard input）”）读取输入，将输出写入文件描述符 1（“标准输出（standard output）”），并将错误信息写入文件描述符 2（“标准出错（standard error）”）。正如我们将看到的，shell 利用这个惯例来实现 I/O 重定向和管道。shell 确保始终打开了这三个文件描述符（user/sh.c:152），默认情况下，它们是控制台的文件描述符。
+在内部实现中，xv6 内核使用文件描述符作为一个表的索引（这个表每个进程都有一个），因此每个进程都有一个私有的从零开始的文件描述符空间。按照惯例，进程从文件描述符 0（“标准输入（standard input）”）读取输入，将输出写入文件描述符 1（“标准输出（standard output）”），并将错误信息写入文件描述符 2（“标准出错（standard error）”）。正如我们将看到的，shell 利用这个惯例来实现 I/O 重定向和管道。shell 确保始终打开了这三个文件描述符（8007），默认情况下，它们是控制台的文件描述符。
 
 > The `read` and `write` system calls read bytes from and write bytes to open files named by file descriptors. The call `read(fd, buf, n)` reads at most `n` bytes from the file descriptor `fd``, copies them into `buf`, and returns the number of bytes read. Each file descriptor that refers to a file has an offset associated with it. `read` reads data from the current file offset and then advances that offset by the number of bytes read: a subsequent `read` will return the bytes following the ones returned by the first read. When there are no more bytes to read, `read` returns zero to indicate the end of the file.
 
@@ -166,15 +170,15 @@ for(;;){
 
 > The important thing to note in the code fragment is that `cat` doesn’t know whether it is reading from a file, console, or a pipe. Similarly `cat` doesn’t know whether it is printing to a console, a file, or whatever. The use of file descriptors and the convention that file descriptor 0 is input and file descriptor 1 is output allows a simple implementation of `cat`.
 
-需要注意的是，这段代码片段中，`cat` 并不知道它是从文件、控制台还是管道读取数据。同样，`cat` 也不知道它是打印到控制台、文件还是其他什么地方。使用文件描述符以及文件描述符 0 为输入、文件描述符 1 为输出的约定，可以简化 `cat` 的实现。
+需要注意的是，这段代码片段中，`cat` 并不知道它是从文件、控制台还是管道读取数据。同样，`cat` 也不知道它是打印到控制台、文件还是其他什么地方。使用文件描述符以及将文件描述符 0 定义为输入、文件描述符 1 定义为输出的约定，可以简化 `cat` 的实现。
 
 > The `close` system call releases a file descriptor, making it free for reuse by a future `open`, `pipe`, or `dup` system call (see below). A newly allocated file descriptor is always the lowest-numbered unused descriptor of the current process.
 
 `close` 系统调用会释放文件描述符，使其可供将来的 `open`、`pipe` 或 `dup` 系统调用（见下文）重用。新分配的文件描述符始终是当前进程中编号最小的未使用的描述符。
 
-> File descriptors and `fork` interact to make I/O redirection easy to implement. `fork` copies the parent’s file descriptor table along with its memory, so that the child starts with exactly the same open files as the parent. The system call `exec` replaces the calling process’s memory but preserves its file table. This behavior allows the shell to implement *I/O redirection* by forking, reopening chosen file descriptors in the child, and then calling `exec` to run the new program. Here is a simplified version of the code a shell runs for the command `cat < input.txt`:
+> File descriptors and `fork` interact to make I/O redirection easy to implement. `fork` copies the parent’s file descriptor table along with its memory, so that the child starts with exactly the same open files as the parent. The system call `exec` replaces the calling process’s memory but preserves its file table. This behavior allows the shell to implement *I/O redirection* by forking, closing and re-opening chosen file descriptors in the child, and then calling `exec` to run the new program. Here is a simplified version of the code a shell runs for the command `cat < input.txt`:
 
-利用文件描述符和 `fork` 可以简化 I/O 重定向的实现。`fork` 会复制父进程的文件描述符表及其内存，这样子进程从一开始就打开了与父进程完全相同的文件。系统调用 `exec` 会替换调用它的进程的内存，但保留了其原先的文件表。此行为允许 shell 在执行完 `fork` 后在子进程中重新打开指定的文件描述符，然后调用 `exec` 运行新程序来实现 *I/O 重定向 (redirection)*。以下是对应在 Shell 中运行命令 `cat < input.txt` 的代码的简化版本：
+利用文件描述符和 `fork` 可以简化 I/O 重定向的实现。`fork` 会复制父进程的文件描述符表及其内存，这样子进程从一开始就打开了与父进程完全相同的文件。系统调用 `exec` 会替换调用它的进程的内存，但保留了其原先的文件表。此行为允许 shell 在执行完 `fork` 后在子进程中先执行关闭再重新打开指定的文件描述符，然后调用 `exec` 运行新程序来实现 *I/O 重定向 (redirection)*。以下是对应在 Shell 中运行命令 `cat < input.txt` 的代码的简化版本：
 
 ```c
 char *argv[2];
@@ -192,13 +196,13 @@ if(fork() == 0) {
 
 子进程关闭文件描述符 0 后，因为 0 将是最小的可用文件描述符，所以内核会保证 `open` 重新打开 `input.txt` 时得到的文件描述符还是 0。随后调用 `exec` 执行 `cat` 时所使用的文件描述符 0（标准输入）将对应 `input.txt`。这些代码不会影响父进程打开的文件描述符，因为它只修改了子进程的描述符。
 
-> The code for I/O redirection in the xv6 shell works in exactly this way (user/sh.c:83). Recall that at this point in the code the shell has already forked the child shell and that `runcmd` will call `exec` to load the new program.
+> The code for I/O redirection in the xv6 shell works in exactly this way (7931). Recall that at this point in the code the shell has already forked the child shell and that `runcmd` will call `exec` to load the new program.
 
-xv6 中 shell 的 I/O 重定向代码正是如此工作的 (user/sh.c:83)。回想一下，此时 shell 已经 fork 了子 shell，并且 `runcmd` 将调用 `exec` 来加载新程序。
+xv6 中 shell 的 I/O 重定向代码正是如此工作的 (7931)。回想一下，此时 shell 已经 fork 了子 shell，并且 `runcmd` 将调用 `exec` 来加载新程序。
 
-> The second argument to `open` consists of a set of flags, expressed as bits, that control what `open` does. The possible values are defined in the file control (fcntl) header (kernel/fcntl.h:1-5): `O_RDONLY`, `O_WRONLY`, `O_RDWR`, `O_CREATE`, and `O_TRUNC`, which instruct `open` to open the file for reading, or for writing, or for both reading and writing, to create the file if it doesn’t exist, and to truncate the file to zero length.
+> The second argument to `open` consists of a set of flags, expressed as bits, that control what `open` does. The possible values are defined in the file control (fcntl) header (4000-4004): `O_RDONLY`, `O_WRONLY`, `O_RDWR`, `O_CREATE`, and `O_TRUNC`, which instruct `open` to open the file for reading, or for writing, or for both reading and writing, to create the file if it doesn’t exist, and to truncate the file to zero length.
 
-`open` 的第二个参数由一组以比特位表示的标志组成，用于控制 `open` 的操作。可用的值在 “文件控制 (file control，简称 fcntl)” 头文件 (kernel/fcntl.h:1-5) 中定义：`O_RDONLY`、`O_WRONLY`、`O_RDWR`、`O_CREATE` 和 `O_TRUNC`，这些选项对应指示 `open` 打开文件进行读取、写入或读写操作、如果文件不存在则创建文件，以及将文件长度截断为零。
+`open` 的第二个参数由一组以比特位表示的标志组成，用于控制 `open` 的行为。可用的值在 “文件控制 (file control，简称 fcntl)” 头文件中定义（4000-4004），这些选项对应指示 `open` 打开文件进行读取（`O_RDONLY`）、写入（`O_WRONLY`）或可读可写（`O_RDWR`）、如果文件不存在则创建文件（`O_CREATE`），以及将文件长度截断为零（`O_TRUNC`）。
 
 > Now it should be clear why it is helpful that `fork` and `exec` are separate calls: between the two, the shell has a chance to redirect the child’s I/O without disturbing the I/O setup of the main shell. One could instead imagine a hypothetical combined `forkexec` system call, but the options for doing I/O redirection with such a call seem awkward. The shell could modify its own I/O setup before calling `forkexec` (and then un-do those modifications); or `forkexec` could take instructions for I/O redirection as arguments; or (least attractively) every program like `cat` could be taught to do its own I/O redirection.
 
@@ -279,13 +283,13 @@ if(fork() == 0) {
 
 如果管道中没有数据，读端的 `read` 会等待数据写入，或者等待所有指向写入端的文件描述符关闭；在后一种情况下，`read` 将返回 0，就像读到了数据文件的末尾。`read` 会阻塞直到不可能有新数据到达，这也是为什么子进程在执行上述 `wc` 之前需要关闭管道写入端的非常重要的原因之一：如果 `wc` 的某个文件描述符指向管道的写入端，`wc` 将永远退出等待。
 
-> The xv6 shell implements pipelines such as `grep fork sh.c | wc -l` in a manner similar to the above code (user/sh.c:101). The child process creates a pipe to connect the left end of the pipeline with the right end. Then it calls `fork` and `runcmd` for the left end of the pipeline and `fork` and `runcmd` for the right end, and waits for both to finish. The right end of the pipeline may be a command that itself includes a pipe (e.g., `a | b | c`), which itself forks two new child processes (one for `b` and one for `c`). Thus, the shell may create a tree of processes. The leaves of this tree are commands and the interior nodes are processes that wait until the left and right children complete.
+> The xv6 shell implements pipelines such as `grep fork sh.c | wc -l` in a manner similar to the above code (7950). The child process creates a pipe to connect the left end of the pipeline with the right end. Then it calls `fork` and `runcmd` for the left end of the pipeline and `fork` and `runcmd` for the right end, and waits for both to finish. The right end of the pipeline may be a command that itself includes a pipe (e.g., `a | b | c`), which itself forks two new child processes (one for `b` and one for `c`). Thus, the shell may create a tree of processes. The leaves of this tree are commands and the interior nodes are processes that wait until the left and right children complete.
 
-xv6 中的 shell 对管道（例如 `grep fork sh.c | wc -l`）的实现方式（user/sh.c:101）与上述代码类似。子进程创建一个管道，连接管道的两边（译者注：这里的子进程指的是（user/sh.c:169），两边是指上面命令行例子中 “|” 的两边的子命令）。然后，它为管道的两边均调用 `fork` 和 `runcmd`，并等待两者完成。管道的右边可以继续嵌套一个包含管道的命令（例如 `a | b | c`），如果是这样，则该命令自身又会 `fork` 两个新的子进程（一个用于 `b`，一个用于 `c`）。因此，shell 可以构建一个进程树。这棵树的叶子对应的是命令（译者注：每个命令对应创建一个进程），内部节点是等待左右子进程完成的进程。
+xv6 中的 shell 对管道（例如 `grep fork sh.c | wc -l`）的实现方式（7950）与上述代码类似。子进程创建一个管道，连接管道的两边（译者注：这里的子进程指的是（user/sh.c:169），两边是指上面命令行例子中 “|” 的两边的子命令）。然后，它为管道的两边均调用 `fork` 和 `runcmd`，并等待两者完成。管道的右边可以继续嵌套一个包含管道的命令（例如 `a | b | c`），如果是这样，则该命令自身又会 `fork` 两个新的子进程（一个用于 `b`，一个用于 `c`）。因此，shell 可以构建一个进程树。这棵树的叶子对应的是命令（译者注：每个命令对应创建一个进程），内部节点是等待左右子进程完成的进程。
 
 > Pipes may seem no more powerful than temporary files: the pipeline
 
-管道似乎并不比临时文件更强大：下面这个管道写法
+管道似乎并不比临时文件更强大，下面这个管道写法：
 
 ```shell
 echo hello world | wc
@@ -340,9 +344,9 @@ mknod("/console", 1, 1);
 
 一个文件的名字与文件本身不是同一个概念；同一个底层的文件（我们称之为 “索引节点（inode）”）可以有多个文件名（我们称之为 “链接（link）”）。每个链接对应目录中的一个 “目录项（entry）” ；该目录项由文件名和对 inode 的引用组成。inode 保存了文件的 “元数据（metadata）”，元数据包括文件的类型（文件、目录或设备）、长度、磁盘上保存文件内容的位置以及指向该文件的链接数量。
 
-> The `fstat` system call retrieves information from the inode that a file descriptor refers to. It fills in a `struct stat`, defined in `stat.h` (kernel/stat.h) as:
+> The `fstat` system call retrieves information from the inode that a file descriptor refers to. It fills in a `struct stat`, defined in `stat.h` (4050) as:
 
-`fstat` 系统调用根据指定的文件描述符参数找到其对应的 inode，并返回 inode 中的信息。它将 inode 中的信息填充到类型为 `struct stat` 的变量中，该结构体在 `stat.h` (kernel/stat.h) 中定义如下：
+`fstat` 系统调用根据指定的文件描述符参数找到其对应的 inode，并返回 inode 中的信息。它将 inode 中的信息填充到类型为 `struct stat` 的变量中，该结构体在 `stat.h` (4050) 中定义如下：
 
 ```c
 #define T_DIR 1 // Directory
@@ -368,11 +372,11 @@ link("a", "b");
 
 > Reading from or writing to `a` is the same as reading from or writing to `b`. Each inode is identified by a unique *inode number*. After the code sequence above, it is possible to determine that `a` and `b` refer to the same underlying contents by inspecting the result of `fstat`: both will return the same inode number (`ino`), and the `nlink` count will be set to 2.
 
-对 `a` 的读取或写入等价于对 `b` 的读取或写入。每个 inode 都通过一个唯一的 *索引节点编号（inode number）* 来标识。执行上述代码片段后，可以通过检查 `fstat` 的结果来确定 `a` 和 `b` 指向相同的底层内容：两者都将返回相同的 inode number (参考 `struct stat` 的成员 `ino`)，并且（结构体 `struct stat` 的成员）`nlink` 的值将被设置为 2。
+对 `a` 的读取或写入等价于对 `b` 的读取或写入。每个 inode 都通过一个唯一的 *索引节点编号（inode number）* 来标识。执行上述代码片段后，可以通过检查 `fstat` 的结果来确定 `a` 和 `b` 指向相同的底层内容：两者都将返回相同的索引节点编号 (参考 `struct stat` 的成员 `ino`)，并且（结构体 `struct stat` 的成员）`nlink` 的值将被设置为 2。
 
 > The `unlink` system call removes a name from the file system. The file’s inode and the disk space holding its content are only freed when the file’s link count is zero and no file descriptors refer to it. Thus adding
 
-`unlink` 系统调用会从文件系统中删除一个名称。只有当一个文件的链接计数值为零且没有文件描述符引用该文件时，文件的 inode 和保存其内容的磁盘空间才会被释放。因此，添加下面这行代码
+`unlink` 系统调用会从文件系统中删除一个名称。只有当一个文件的链接计数值为零且没有文件描述符引用该文件时，文件的 inode 和保存其内容的磁盘空间才会被释放。因此，添加下面这行代码：
 
 ```c
 unlink("a");
@@ -380,7 +384,7 @@ unlink("a");
 
 > to the last code sequence leaves the inode and file content accessible as `b`. Furthermore,
 
-到上面代码片段的末尾将使我们只能用 `b` 来访问这个文件 inode。此外参考以下两行代码，
+到上面代码片段的末尾将使我们只能用 `b` 来访问这个文件 inode。此外参考以下两行代码：
 
 ```c
 fd = open("/tmp/xyz", O_CREATE|O_RDWR);
@@ -395,9 +399,9 @@ unlink("/tmp/xyz");
 
 Unix 提供了一些可以在 shell 中执行的操作文件的实用程序，例如 `mkdir`、`ln​​` 和 `rm`，它们都是用户级程序。这种设计允许任何人通过添加新的用户级程序来扩展命令行接口。事后看来，这种设计似乎再自然不过了，但与 Unix 同时代设计的其他系统通常会将此类命令内置到 shell 中（甚至将 shell 内置到内核中）。
 
-> One exception is `cd`, which is built into the shell (user/sh.c:161). `cd` must change the current working directory of the shell itself. If `cd` were run as a regular command, then the shell would fork a child process, the child process would run `cd`, and `cd` would change the *child* ’s working directory. The parent’s (i.e., the shell’s) working directory would not change.
+> One exception is `cd`, which is built into the shell (8021). `cd` must change the current working directory of the shell itself. If `cd` were run as a regular command, then the shell would fork a child process, the child process would run `cd`, and `cd` would change the *child* ’s working directory. The parent’s (i.e., the shell’s) working directory would not change.
 
-但有一个例外是 `cd` 命令，它是 shell 内置的（user/sh.c:161）。`cd` 必须更改 shell 本身的当前工作目录。如果 `cd` 作为常规命令运行，shell 会 fork 一个子进程，子进程会运行 `cd`，而 `cd` 只会更改子进程的当前工作目录。父进程（即 shell）的工作目录并不会被改变。
+但有一个例外是 `cd` 命令，它是 shell 内置的（8021）。`cd` 必须更改 shell 本身的当前工作目录。如果 `cd` 作为常规命令运行，shell 会 fork 一个子进程，子进程会运行 `cd`，而 `cd` 只会更改子进程的当前工作目录。父进程（即 shell）的工作目录并不会被改变。
 
 ## 1.5 现实世界（Real world）
 
