@@ -22,9 +22,9 @@
 
 当一个进程需要请求一个内核服务时，它会调用一个 “系统调用（system call）”，而系统调用就是操作系统所提供的一套接口中的一个实例。内核执行系统调用，完成服务并返回。因此，我们可以认为一个进程在 “用户空间（user space）” 和 “内核空间（kernel space）” 之间交替运行。
 
-> As described in detail in subsequent chapters, the kernel uses the hardware protection mechanisms provided by a CPU to ensure that each process executing in user space can access only its own memory. The kernel executes with the hardware privileges required to implement these protections; user programs execute without those privileges. When a user program invokes a system call, the hardware raises the privilege level and starts executing a pre-arranged function in the kernel.
+> As described in detail in subsequent chapters, the kernel uses the hardware protection mechanisms provided by a CPU (This text generally refers to the hardware element that executes a computation with the term CPU, an acronym) to ensure that each process executing in user space can access only its own memory. The kernel executes with the hardware privileges required to implement these protections; user programs execute without those privileges. When a user program invokes a system call, the hardware raises the privilege level and starts executing a pre-arranged function in the kernel.
 
-正如在接下里的章节中所介绍的那样，内核使用 CPU 提供的硬件保护机制来确保每个在用户空间执行的进程只能访问它自己的内存。内核运行时拥有访问硬件的权限，这实现了对硬件的保护；而用户程序执行时没有这些权限。当用户程序调用系统调用时，硬件会提升权限级别，并开始执行内核中预先安排好的函数。
+正如在接下里的章节中所介绍的那样，内核使用 CPU (本文通常用 “CPU” 来指代执行计算的硬件元素，这是一个术语) 提供的硬件保护机制来确保每个在用户空间执行的进程只能访问它自己的内存。内核运行时拥有访问硬件的权限，这实现了对硬件的保护；而用户程序执行时没有这些权限。当用户程序调用系统调用时，硬件会提升权限级别，并开始执行内核中预先安排好的函数。
 
 > The collection of system calls that a kernel provides is the interface that user programs see. The xv6 kernel provides a subset of the services and system calls that Unix kernels traditionally offer.
 
@@ -117,7 +117,7 @@ xv6 的 shell 使用上述调用来代表用户运行程序。shell 的主要结
 
 > You might wonder why `fork` and `exec` are not combined in a single call; we will see later that the shell exploits the separation in its implementation of I/O redirection. To avoid the wastefulness of creating a duplicate process and then immediately replacing it (with `exec`), operating kernels optimize the implementation of `fork` for this use case by using virtual memory techniques such as copy-on-write (see Section 4.6).
 
-你可能想知道为什么 `fork` 和 `exec` 不合并实现为一个系统调用；稍后我们将看到，shell 在实现 “输入/输出重定向（I/O redirection）” 中利用了这种分离设计。为了避免创建并复制进程后立即调用 `exec` 导致进程内存又被替换所导致的浪费，操作系统内核针对这种情况会优化 `fork` 的实现，并使用了虚拟内存技术，例如 “写时复制（copy-on-write）”（具体参见 4.6 节）。
+你可能想知道为什么 `fork` 和 `exec` 不合并实现为一个系统调用；稍后我们将看到，shell 在实现 “输入/输出重定向（I/O redirection）” 中利用了这种分离设计。为了避免创建并复制进程后立即调用 `exec` 导致进程内存又被替换所导致的浪费，操作系统内核针对这种情况会优化 `fork` 的实现，并使用了虚拟内存技术，例如 “写时复制（copy-on-write）”（具体参见第 4.6 节）。
 
 > Xv6 allocates most user-space memory implicitly: `fork` allocates the memory required for the child’s copy of the parent’s memory, and `exec` allocates enough memory to hold the executable file. A process that needs more memory at run-time (perhaps for `malloc`) can call `sbrk(n)` to grow its data memory by `n` zero bytes; `sbrk` returns the location of the new memory.
 
