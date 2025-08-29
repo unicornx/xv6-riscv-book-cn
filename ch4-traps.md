@@ -33,7 +33,7 @@ xv6 的 trap 处理分为四个阶段：最开始是 RISC-V CPU 内部的硬件�
 - `scause`：RISC-V 在此处放置一个数字来描述 trap 发生的原因。
 - `sscratch`：trap 处理程序的代码使用 `sscratch` 来帮助其避免在保存用户寄存器之前覆盖它们。
 - `sstatus`：`sstatus` 中的 SIE 比特位控制是否启用设备中断。如果内核清除了 SIE 比特位，RISC-V 将屏蔽设备中断，直到内核重新设置 SIE 比特位。SPP 比特位指示发生 trap 时机器处于用户模式还是管理员模式，从而控制执行 `sret` 时返回到哪个模式。
- 
+
 > The above registers relate to traps handled in supervisor mode, and they cannot be read or written in user mode.
 
 上述寄存器与在管理员模式下处理 trap 相关，在用户模式下它们无法被读取或写入。
@@ -158,7 +158,7 @@ xv6 使用一个 “蹦床页（trampoline page）” 来满足以上要求。tr
 
 > Xv6 handles traps from kernel code in a different way than traps from user code. When entering the kernel, `usertrap` points `stvec` to the assembly code at `kernelvec` (kernel/kernelvec.S:12). Since `kernelvec` only executes if xv6 was already in the kernel, `kernelvec` can rely on `satp` being set to the kernel page table, and on the stack pointer referring to a valid kernel stack. `kernelvec` pushes all 32 registers onto the stack, from which it will later restore them so that the interrupted kernel code can resume without disturbance.
 
-xv6 对于处理内核态 trap 的方式与处理用户态 trap 不同。进入内核时，`usertrap` 会将 `stvec` 指向汇编函数 `kernelvec` （kernel/kernelvec.S:12）。由于 `kernelvec` 仅在 xv6 已进入内核后才会执行，因此当 `kernelvec` 被执行时我们知道 `satp` 已经设置为指向内核页表，以及栈指针也已经指向有效的内核栈（译者注：`uservec` 中跳转 `usertrap` 之前已经完成内核页表以及内核栈指针的设置）。`kernelvec` 会将所有 32 个寄存器压入栈，之后再从栈中恢复它们，以便被中断的内核代码能够不受干扰地恢复执行（译者注：原文这里所说的会将所有 32 个寄存器压栈的描述并不准确，实际只会保存 caller-saved 寄存器，具体见代码）。
+xv6 对于处理内核态 trap 的方式与处理用户态 trap 不同。进入内核时，`usertrap` 会将 `stvec` 指向汇编函数 `kernelvec`（kernel/kernelvec.S:12）。由于 `kernelvec` 仅在 xv6 已进入内核后才会执行，因此当 `kernelvec` 被执行时我们知道 `satp` 已经设置为指向内核页表，以及栈指针也已经指向有效的内核栈（译者注：`uservec` 中跳转 `usertrap` 之前已经完成内核页表以及内核栈指针的设置）。`kernelvec` 会将所有 32 个寄存器压入栈，之后再从栈中恢复它们，以便被中断的内核代码能够不受干扰地恢复执行（译者注：原文这里所说的会将所有 32 个寄存器压栈的描述并不准确，实际只会保存 caller-saved 寄存器，具体见代码）。
 
 > `kernelvec` saves the registers on the stack of the interrupted kernel thread, which makes sense because the register values belong to that thread. This is particularly important if the trap causes a switch to a different thread – in that case the trap will actually return from the stack of the new thread, leaving the interrupted thread’s saved registers safely on its stack.
 
