@@ -56,7 +56,7 @@ xv6 的 `main` 函数调用 `consoleinit` (kernel/console.c:182) 来初始化 UA
 
 UART 每次发送完一个字节后，都会产生一个中断。`uartintr`（中断处理程序）会调用 `uartstart`，后者会检查设备是否确实已完成发送，并将下一个缓冲的输出字符交给设备。因此，如果一个进程向控制台写入多个字节，通常第一个字节会由 `uartputc` 调用 `uartstart` 发送，其余缓冲的字节则会在 “发送完成” 中断到达时由 `uartintr` 调用 `uartstart` 发送。
 
-> A general pattern to note is the decoupling of device activity from process activity via buffering and interrupts. The console driver can process input even when no process is waiting to read it; a subsequent read will see the input. Similarly, processes can send output without having to wait for the device. This decoupling can increase performance by allowing processes to execute concurrently with device I/O, and is particularly important when the device is slow (as with the UART) or needs immediate attention (as with echoing typed characters). This idea is sometimes called *I/O concurrency*.
+> A general pattern to note is the decoupling of device activity from process activity via buffering and interrupts. The console driver can process input even when no process is waiting to read it; a subsequent read will see the input. Similarly, processes can send output without having to wait for the device. This decoupling can increase performance by allowing processes to execute concurrently with device I/O, and is particularly important when the device is slow (as with the UART) or needs immediate attention (as with echoing typed characters). This idea is sometimes called *I/O concurrency*.
 
 注意我们这里用到了一个通用设计模式，即通过缓冲和中断将设备活动与进程活动解耦。即使没有进程在等待读取输入，控制台驱动程序也会处理输入（译者注：驱动会将其收到的数据先缓存起来）；后续（进程的）读取操作将直接读取（驱动程序缓存的）输入。同样，进程可以发送输出而无需等待设备完成。这种解耦允许进程与设备 I/O 并发执行，从而提高性能，尤其是在设备速度较慢（例如 UART）或需要立即处理（例如回显输入字符）时尤为重要。这种理念有时被称为 *输入/输出并发(I/O concurrency)*。
 
