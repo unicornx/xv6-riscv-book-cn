@@ -239,7 +239,7 @@ h() {
 
 > Some xv6 spinlocks protect data that is used by both threads and interrupt handlers. For example, the `clockintr` timer interrupt handler might increment `ticks` (kernel/trap.c:164) at about the same time that a kernel thread reads `ticks` in `sys_sleep` (kernel/sysproc.c:61). The lock `tickslock` serializes the two accesses.
 
-xv6 会使用一些自旋锁来保护线程和中断处理程序之间共享的数据。例如，`clockintr` 这个定时器中断处理函数会增加 `ticks` (kernel/trap.c:163) 的值，而同时内核线程可能在 `sys_sleep` (kernel/sysproc.c:64) 中读取 `ticks` 的值。xv6 用锁 `tickslock` 串行化两者对 `ticks` 的访问。
+xv6 会使用一些自旋锁来保护线程和中断处理程序之间共享的数据。例如，`clockintr` 这个定时器中断处理函数会增加 `ticks` (kernel/trap.c:164) 的值，而同时内核线程可能在 `sys_sleep` (kernel/sysproc.c:61) 中读取 `ticks` 的值。xv6 用锁 `tickslock` 串行化两者对 `ticks` 的访问。
 
 > The interaction of spinlocks and interrupts raises a potential danger. Suppose `sys_sleep` holds `tickslock`, and its CPU is interrupted by a timer interrupt. `clockintr` would try to acquire `tickslock`, see it was held, and wait for it to be released. In this situation, `tickslock` will never be released: only `sys_sleep` can release it, but `sys_sleep` will not continue running until `clockintr` returns. So the CPU will deadlock, and any code that needs either lock will also freeze.
 
