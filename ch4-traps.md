@@ -264,20 +264,20 @@ xv6 中引入 trampoline 和 trapframe 的方案看起来可能有点复杂。�
 
 > 2. Implement lazy memory allocation.
 
-实现 lazy memory allocation.
+2. 实现 lazy memory allocation.
 
 > 3. Implement COW fork.
 
-实现 COW fork。
+3. 实现 COW fork。
 
 > 4. Is there a way to eliminate the special `TRAPFRAME` page mapping in every user address space? For example, could `uservec` be modified to simply push the 32 user registers onto the kernel stack, or store them in the `proc` structure?
 
-有没有办法消除每个用户地址空间中对特殊的 TRAPFRAME 页的映射？例如，是否可以修改 `uservec`，将 32 个用户寄存器简单地保存到内核栈中，或者将它们存储在 `proc` 结构体中？
+4. 有没有办法消除每个用户地址空间中对特殊的 TRAPFRAME 页的映射？例如，是否可以修改 `uservec`，将 32 个用户寄存器简单地保存到内核栈中，或者将它们存储在 `proc` 结构体中？
 
 > 5. Could xv6 be modified to eliminate the special `TRAMPOLINE` page mapping?
 
-是否可以修改 xv6，消除针对 TRAMPOLINE 页的映射？
+5. 是否可以修改 xv6，消除针对 TRAMPOLINE 页的映射？
 
 > 6. Implement `mmap`.
 
-实现 `mmap`。
+6. 实现 `mmap`。
