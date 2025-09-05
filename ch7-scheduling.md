@@ -238,10 +238,6 @@ xv6 的 `sleep` (kernel/proc.c:548) 和 `wakeup` (kernel/proc.c:579) 实现了�
 
 如果睡眠和唤醒各执行了两次并且意外选择了同一个通道，也不会有什么问题：它们会检测到虚假的唤醒，如上所述的循环可以处理这个问题。睡眠和唤醒机制的最大魅力在于不仅其实现简单（无需创建特殊的数据结构来充当睡眠通道），又提供了一层封装（调用者无需知道它们正在与哪个特定进程交互）。
 
-> [1] Strictly speaking it is sufficient if `wakeup` merely follows the `acquire` (that is, one could call `wakeup` after the `release`).
-
-准确来说，只要确保在 `acquire` 之后调用 `wakeup` 就行（换句话说，甚至可以把对 `release` 的调用挪到 `wakeup` 之前）（译者注：继续参考上面例子代码的第 403 行 ~ 406 行）。
-
 ## 7.7 代码讲解：管道（Code: Pipes）
 
 > A more complex example that uses `sleep` and `wakeup` to synchronize producers and consumers is xv6’s implementation of pipes. We saw the interface for pipes in Chapter 1: bytes written to one end of a pipe are copied to an in-kernel buffer and then can be read from the other end of the pipe. Future chapters will examine the file descriptor support surrounding pipes, but let’s look now at the implementations of `pipewrite` and `piperead`.
