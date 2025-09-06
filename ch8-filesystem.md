@@ -252,7 +252,7 @@ inode 表（即 `itable`）仅存储内核代码或数据结构中 C 指针指�
 
 > `iget` (kernel/fs.c:247) looks through the inode table for an active entry (`ip->ref > 0`) with the desired device and inode number. If it finds one, it returns a new reference to that inode (kernel/fs.c:256-260). As `iget` scans, it records the position of the first empty slot (kernel/fs.c:261-262), which it uses if it needs to allocate a table entry.
 
-`iget` (kernel/fs.c:247) 在 inode 表中查找有效的 (`ip->ref > 0`) 的项，同时将该项的设备号与 inode 编号和给定的入参值进行匹配。如果找到，它会递增该 inode 的 `ref` 值并返回其指针。在扫描过程中 `iget` 会记录第一个可用项的位置 (kernel/fs.c:261-262) ，以便需要在 inode 表中分配新的项时直接定位到第一个可用项的位置（避免再扫描一遍）。
+`iget` (kernel/fs.c:247) 在 inode 表中查找有效的 (`ip->ref > 0`) 的项，同时将该项的设备号与 inode 编号和给定的入参值进行匹配。如果找到，它会递增该 inode 的 `ref` 值并返回其指针（kernel/fs.c:256-260）。在扫描过程中 `iget` 会记录第一个可用项的位置 (kernel/fs.c:261-262) ，以便需要在 inode 表中分配新的项时直接定位到第一个可用项的位置（避免再扫描一遍）。
 
 > Code must lock the inode using `ilock` before reading or writing its metadata or content. `ilock` (kernel/fs.c:293) uses a sleep-lock for this purpose. Once `ilock` has exclusive access to the inode, it reads the inode from disk (more likely, the buffer cache) if needed. The function `iunlock` (kernel/fs.c:321) releases the sleep-lock, which may cause any processes sleeping to be woken up.
 
