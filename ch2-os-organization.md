@@ -142,6 +142,8 @@ xv6 使用 “页表（page tables）”（在硬件的帮助下）为每个进�
 
 xv6 为每个进程维护一个单独的页表，定义了该进程的地址空间。如图 2.3 所示是一个进程的地址空间，它对应了进程的 *用户内存（user memory）*，这块内存以虚拟内存地址 0 作为起始地址。向上（虚拟地址增加的方向），首先存放的是指令，然后是全局变量，接着是栈区，最后是一个 “堆” 区（用于 malloc）供进程根据需要进行扩展。有许多因素限制了进程地址空间的最大范围：RISC-V 的指针宽度是 64 位；硬件在页表中查找虚拟地址时只使用低 39 位；xv6 只使用了这 39 位中的 38 位。因此，最大地址是 2<sup>38</sup> - 1 = 0x3fffffffff，即代码中定义的常量 `MAXVA`（kernel/riscv.h:378）。在地址空间的顶部，xv6 为 *trampoline* 和 *trapframe* 各映射了一个 “页（page）”（大小为 4096 个字节），xv6 利用这两个页实现用户态和内核态之间的切换，trampline 页中包含了用于内核态切换时会执行的指令，trapframe 页会被内核用于保存进程的用户寄存器，有关这部分的详细内容将在第 4 章中进一步解释。
 
+![](./figures/figure-2.3.png)
+
 > The xv6 kernel maintains many pieces of state for each process, which it gathers into a `struct proc` (kernel/proc.h:85). A process’s most important pieces of kernel state are its page table, its kernel stack, and its run state. We’ll use the notation `p->xxx` to refer to elements of the `proc` structure; for example, `p->pagetable` is a pointer to the process’s page table.
 
 xv6 内核为每个进程维护许多信息，所有的这些内容都定义在一个结构体 `struct proc` (kernel/proc.h:86) 中。一个进程中最重要的内核信息包括它的页表、内核栈区和运行状态。我们将使用 `p->xxx` 来引用 `proc` 结构体中的属性；例如，`p->pagetable` 是一个指向该进程页表的指针。
