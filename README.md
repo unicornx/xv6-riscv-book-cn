@@ -18,7 +18,7 @@ August 31, 2024
 - [第 10 章 总结](./ch10-summary.md)
 - [参考书目](./bibliography.md)
 
-本仓库是基于 [book-riscv-rev4.pdf][1] 的中文翻译。对应：
+本仓库是基于 [book-riscv-rev4.pdf][1] 的中文翻译（已下载到本仓库 [pdf](./book-riscv-rev4.pdf)）。对应：
 
 - [xv6-riscv-book 书源码仓库][3] e2d964e "x"
 - [xv6-riscv 代码仓库][2] de247db "menvcfg also"
