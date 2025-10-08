@@ -2,7 +2,7 @@
 
 > Page tables are the most popular mechanism through which the operating system provides each process with its own private address space and memory. Page tables determine what memory addresses mean, and what parts of physical memory can be accessed. They allow xv6 to isolate different processes’ address spaces and to multiplex them onto a single physical memory. Page tables provide a level of indirection that allows operating systems to perform many useful tricks. Xv6 performs a few: mapping the same memory (a trampoline page) in several address spaces, guarding kernel and user stacks with an unmapped page, and allocating user heap memory lazily. The rest of this chapter explains the page tables that the RISC-V hardware provides and how xv6 uses them.
 
-“页表（Page tables）” 是操作系统为每个进程实现私有地址空间和内存的最常用的机制。理解页表的概念有助于我们理解内存地址的含义，页表也定义了物理内存的哪些部分可以被访问。xv6 利用页表隔离不同进程的地址空间，从而实现多个进程对单个物理内存空间的复用。页表是一种常用的设计，它提供了一层隔离（a level of indirection），方便操作系统基于该设计实现一些有趣的应用。xv6 利用页表实现了各种操作，譬如：它将同一块内存页（即下文中所介绍的 trampoline 页）映射到不同的地址空间中；用一个未映射的页保护用户栈和内核栈；延迟分配用户的堆内存，等等。本章的其余部分将介绍 RISC-V 硬件提供的页表机制以及 xv6 如何使用它。
+“页表（Page tables）” 是操作系统为每个进程实现私有地址空间和内存的最常用的机制。理解页表的概念有助于我们理解内存地址的含义，页表也定义了物理内存中哪些部分可以被访问。xv6 利用页表隔离不同进程的地址空间，从而实现多个进程对单个物理内存空间的复用。页表是一种常用的设计，它提供了一层隔离（a level of indirection），方便操作系统基于该设计实现一些有趣的应用。xv6 利用页表实现了各种操作，譬如：它将同一个内存页（即下文中将介绍的 trampoline 页）映射到不同的地址空间中；用一个未映射的页保护用户栈和内核栈；延迟分配用户的堆内存，等等。本章的其余部分将介绍 RISC-V 硬件提供的页表机制以及 xv6 将如何使用它。
 
 ## 3.1 分页硬件（Paging hardware）
 
@@ -12,14 +12,14 @@
 
 > Xv6 uses RISC-V's Sv39 mode, which means that only the bottom 39 bits of a 64-bit virtual address are used; the top 25 bits are not used. In this Sv39 configuration, a RISC-V page table is logically an array of 2<sup>27</sup> (134,217,728) *page table entries (PTEs)*. Each PTE contains a 44-bit physical page number (PPN) and some flags. The paging hardware translates a virtual address by using the top 27 bits of the 39 bits to index into the page table to find a PTE, and making a 56-bit physical address whose top 44 bits come from the PPN in the PTE and whose bottom 12 bits are copied from the original virtual address. Figure 3.1 shows this process with a logical view of the page table as a simple array of PTEs (the RISC-V page table is actually a tree; see Figure 3.2 for a fuller story). A page table gives the operating system control over virtual-to-physical address translations at the granularity of aligned chunks of 4096 (2<sup>12</sup>) bytes. Such a chunk is called a *page*.
 
-xv6 使用了 RISC-V 的 Sv39 模式，这意味着它只使用一个 64 位虚拟地址的低 39 位；高 25 位不使用。在这种 Sv39 模式下，RISC-V 页表在逻辑上可以看成是一个由 2<sup>27</sup> 个 *页表项（Page Table Entry，下文简称 PTE）* 组成的数组，每个 PTE 中有 44 个比特位用于存放 “物理页编号（Physical Page Number，简称 PPN）”， 另外还包括一些标志位（Flags）。分页硬件使用虚拟地址中低 39 位中的高 27 位作为下标来索引页表，以找到该虚拟地址对应的一个 PTE，然后生成一个 56 位的物理地址，其高 44 位来自 PTE 中的 PPN，低 12 位来自对应虚拟地址的低 12 位。图 3.1 描述了这个过程，页表可以被看作一个简单的由 PTE 组成的数组（严格来说，RISC-V 的页表是一棵树，更完整的介绍可以参见图 3.2）。页表使得操作系统能够以大小为 4096 ( 2<sup>12</sup> ) 字节的内存块为单元控制虚拟地址到物理地址的转换（同时注意这些内存单元必须按 4096 字节为边界进行对齐）。这样的内存块在术语上称为 *页（page）*。
+xv6 使用了 RISC-V 的 Sv39 模式，这意味着它只使用一个 64 位虚拟地址的低 39 位；高 25 位不使用。在这种 Sv39 模式下，RISC-V 页表在逻辑上可以看成是一个由 2<sup>27</sup> 个 *页表项（Page Table Entry，下文简称 PTE）* 组成的数组，每个 PTE 中有 44 个比特位用于存放 “物理页编号（Physical Page Number，简称 PPN）”， 另外还包括一些标志位（Flags）。分页硬件使用虚拟地址中低 39 位中的高 27 位作为下标来索引页表，以找到该虚拟地址对应的一个 PTE，然后生成一个 56 位的物理地址，其高 44 位来自 PTE 中的 PPN，低 12 位来自对应虚拟地址的低 12 位。图 3.1 描述了这个过程，页表可以被看作一个简单的由 PTE 组成的数组（最终的 RISC-V 的页表实现是一棵树，更完整的介绍可以参见图 3.2）。页表使得操作系统能够以大小为 4096 ( 2<sup>12</sup> ) 字节的内存块为单元控制虚拟地址到物理地址的转换（同时注意这些内存单元必须按 4096 字节为边界进行对齐）。这样的内存块在术语上称为 *页（page）*。
 
 ![](./figures/figure-3.1.png)
 
 
 > RISC-V’s design leaves room for expansion of both virtual and physical addresses. If more virtual address space is needed, RISC-V supports an Sv48 mode, with 48-bit virtual addresses [3]. Physical addresses also have room for growth: there is room in the PTE format for the physical page number to grow by another 10 bits. The designers of RISC-V chose address sizes based on technology predictions. 2<sup>48</sup> bytes is 262,144 GB, a much larger user virtual address space than any application is likely to use today. 2<sup>56</sup> bytes of physical address space is 65,536 terabytes, much more RAM than any computer can currently be equipped with.
 
-RISC-V 的设计为虚拟地址和物理地址的扩展预留了空间。如果需要更多虚拟地址空间，RISC-V 还支持 Sv48 模式，该模式具有 48 位虚拟地址 [3]。物理地址范围也有进一步扩展的空间，这体现在 PTE 中还有 10 个比特位没有使用。RISC-V 的设计者基于对未来技术上的考量确定了这些地址的长度。2<sup>48</sup> 字节对应 262,144 GB，这比当今任何应用程序可能使用的用户态虚拟地址空间都要大得多。2<sup>56</sup> 字节的物理地址空间对应 65,536 TB，这比目前任何计算机所能配备的 RAM 都要大得多。
+RISC-V 的设计为虚拟地址和物理地址的扩展预留了空间。如果需要更多虚拟地址空间，RISC-V 还支持 Sv48 模式，该模式具有 48 位虚拟地址 [3]。物理地址范围也有进一步扩展的空间，这体现在 PTE 中还有 10 个比特位没有使用。RISC-V 的设计者基于对未来技术上的考量确定了这些地址的长度。2<sup>48</sup> 字节对应 262,144 GB（译者注：即 256 TB），这比当今任何应用程序可能使用的用户态虚拟地址空间都要大得多。2<sup>56</sup> 字节的物理地址空间对应 65,536 TB（译者注：即 64 PB），这比目前任何计算机所能配备的 RAM 都要大得多（译者注，Sv39 和 Sv48 支持的虚拟地址空间大小不同，Sv39 是 512 GB (2<sup>39</sup>)，Sv48 是 256 TB (2<sup>48</sup>)，但 Sv39 和 Sv48 所支持的物理地址空间大小是相同的，都是 64 PB (2<sup>56</sup>)）。
 
 > As Figure 3.2 shows, a RISC-V CPU page table is stored in physical memory as a three-level tree. The root of the tree is a 4096-byte page-table page that contains 512 PTEs, which contain the physical addresses for page-table pages in the next level of the tree. Each of those pages contains 512 PTEs for the final level in the tree. The paging hardware uses the top 9 bits of the 27 bits to select a PTE in the root page-table page, the middle 9 bits to select a PTE in a page-table page in the next level of the tree, and the bottom 9 bits to select the final PTE. (In Sv48 RISC-V a page table has four levels, and bits 39 through 47 of a virtual address index into the top-level.)
 
@@ -45,7 +45,7 @@ RISC-V 的设计为虚拟地址和物理地址的扩展预留了空间。如果�
 
 > To tell a CPU to use a page table, the kernel must write the physical address of the root page-table page into the satp register. A CPU will translate all addresses generated by subsequent instructions using the page table pointed to by its own `satp`. Each CPU has its own `satp` so that different CPUs can run different processes, each with a private address space described by its own page table.
 
-为了告诉处理器使用页表，内核必须将 “根页表页（root page-table page）” 的物理地址写入到 `satp` 寄存器中。一旦 `satp` 寄存器被更新，该 CPU 对于此后执行的指令都将基于自己的 `satp` 所指向的页表对指令中的虚拟地址进行翻译（生成物理地址）。每个 CPU 都有自己的 `satp`，因此多个 CPU 可以运行不同的进程，每个进程都可以使用自己的页表从而拥有各自私有的地址空间。
+为了告诉处理器使用页表，内核必须将 “根页表页（root page-table page）” 的物理地址写入到 `satp` 寄存器中。一旦 `satp` 寄存器被更新，该 CPU 对于此后执行的指令都将基于自己的 `satp` 所指向的页表对指令中的虚拟地址进行翻译（生成物理地址）。每个 CPU 都有自己的 `satp`，因此多个 CPU 可以运行不同的进程，每个进程都可以使用自己的页表从而拥有它们私有的地址空间。
 
 > From the kernel’s point of view, a page table is data stored in memory, and the kernel creates and modifies page tables using code much like you might see for any tree-shaped data structure.
 
