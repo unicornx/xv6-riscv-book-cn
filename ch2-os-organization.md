@@ -2,7 +2,7 @@
 
 > A key requirement for an operating system is to support several activities at once. For example, one might use the `fork` and `exec` system calls from Chapter 1 to start both a compiler and a text editor as processes. The operating system must *time-share* resources such as CPUs and memory among these processes. The operating system must also arrange for *isolation* between the processes. If one process has a bug and malfunctions, it shouldn’t affect unrelated processes. Complete isolation, however, is too strong, since it should be possible for processes to intentionally interact; pipelines are an example. Thus an operating system must fulfill three requirements: multiplexing, isolation, and interaction.
 
-对于一个操作系统来说，一个关键的需求是要同时支持多个 “活动（activity）”。例如，可以使用第 1 章中描述的系统调用 `fork` 和 `exec` 来启动编译器和文本编辑器两个进程。操作系统必须在这些进程之间采用 *分时（time-share）* 的方式共享 CPU 和内存等资源。操作系统还必须确保进程之间的 *隔离性（isolation）*。如果一个进程的实现有问题会导致一些非法操作，它也不应该影响那些和它无关的其他进程。当然，也没有必要实现完全的隔离，进程之间有时候也有交互的需要；管道就是一个例子。因此，操作系统必须满足三个需求：“复用（multiplexing）”、“隔离（isolation）” 和 “交互（interaction）”。
+对于一个操作系统来说，一个关键的需求是要同时支持多个 “活动（activity）”。例如，可以使用第 1 章中描述的系统调用 `fork` 和 `exec` 来启动编译器和文本编辑器两个进程。操作系统必须在这些进程之间采用 *分时（time-share）* 的方式共享 CPU 和内存等资源。操作系统还必须确保进程之间的 *隔离性（isolation）*。如果一个进程的实现有问题导致了一些非法操作，它也不应该影响那些和它无关的其他进程。当然，也没有必要实现完全的隔离，进程之间有时候也有交互的需要；管道就是一个例子。因此，操作系统必须满足三个需求：“复用（multiplexing）”、“隔离（isolation）” 和 “交互（interaction）”。
 
 > This chapter provides an overview of how operating systems are organized to achieve these three requirements. It turns out there are many ways to do so, but this text focuses on mainstream designs centered around a *monolithic kernel*, which is used by many Unix operating systems. This chapter also provides an overview of an xv6 process, the unit of isolation in xv6.
 
@@ -10,11 +10,11 @@
 
 > Xv6 runs on a *multi-core* RISC-V microprocessor (By "multi-core" this text means multiple CPUs that share memory but execute in parallel, each with its own set of registers. This text sometimes uses the term multiprocessor as a synonym for multi-core, though multiprocessor can also refer more specifically to a computer with several distinct processor chips.), and much of its low-level functionality (for example, its process implementation) is specific to RISC-V. RISC-V is a 64-bit CPU, and xv6 is written in “LP64” C, which means long (L) and pointers (P) in the C programming language are 64 bits, but an `int` is 32 bits. This book assumes the reader has done a bit of machine-level programming on some architecture, and will introduce RISC-V-specific ideas as they come up. The user-level ISA [2] and privileged architecture [3] documents are the complete specifications. You may also refer to “The RISC-V Reader: An Open Architecture Atlas” [15].
 
-xv6 支持运行 *多核(multi-core)* RISC-V 微处理器 (本文中的 “多核（multi-core）” 是指多个 CPU 共享内存且同时并发运行，每个 CPU 都有各自的寄存器组。本文有时使用 “多处理器（multiprocessor）” 作为 “多核” 的同义词，但 “多处理器” 有时更特指一台计算机具有多个不同的处理器芯片。)，它的许多底层功能（例如，它的进程实现）是特定于 RISC-V 的。运行 xv6 的 RISC-V 处理器是 64 位的，xv6 用 C 语言编写，且编译时采用 “LP64” 方式，这意味着 C 语言中的 long（L）类型的变量和指针（P）变量都是 64 位长度，但 `int` 类型变量是 32 位的。这本书假设读者已经在一些架构上具备一些机器指令级别（译者注：即采用汇编语言）编程的经验，本文在涉及相关内容时会适当介绍一些 RISC-V 相关的知识。完整的 ISA 规范请参考用户级别（非特权） ISA 手册 [2] 和特权 ISA 手册 [3]。另一个有用的参考文献是 “The RISC-V Reader: An Open Architecture Atlas” [15]。
+xv6 支持 *多核(multi-core)* RISC-V 微处理器 (本文中的 “多核（multi-core）” 是指多个 CPU 共享内存且同时并发运行，每个 CPU 都有各自的寄存器组。本文有时使用 “多处理器（multiprocessor）” 作为 “多核” 的同义词，但 “多处理器” 有时更特指一台计算机具有多个不同的处理器芯片。)，它的许多底层功能（例如，它的进程实现）是特定于 RISC-V 的。运行 xv6 的 RISC-V 处理器是 64 位的，xv6 用 C 语言编写，且编译时采用 “LP64” 方式，这意味着 C 语言中的 `long`（L）类型的变量和指针（P）变量都是 64 位长度，但 `int` 类型变量是 32 位的。这本书假设读者已经在一些架构上具备一些机器指令级别（译者注：即采用汇编语言）编程的经验，本文在涉及相关内容时会适当介绍一些 RISC-V 相关的知识。完整的 ISA 规范请参考用户级别（非特权） ISA 手册 [2] 和特权 ISA 手册 [3]。另一个有用的参考文献是 “The RISC-V Reader: An Open Architecture Atlas” [15]。
 
 > The CPU in a complete computer is surrounded by support hardware, much of it in the form of I/O interfaces. Xv6 is written for the support hardware simulated by qemu’s “-machine virt” option. This includes RAM, a ROM containing boot code, a serial connection to the user’s keyboard/screen, and a disk for storage.
 
-作为一个完整的计算机系统，除了 CPU 外还需要有其他外围设备硬件支撑，其中大部分外设可以通过 I/O 接口方式访问。xv6 是针对 qemu 的 virt 机器开发的 (所谓 virt 机器是指运行 qemu 模拟器时用 “-machine virt” 选项启动的一种仿真平台) 。这个仿真平台模拟了内存（RAM）、包含引导代码的 ROM、一个连接了用户键盘和屏幕的串口，以及一个支持持久存储的磁盘。
+作为一个完整的计算机系统，除了 CPU 外还包括其他外围设备硬件，其中大部分外设可以通过 I/O 接口方式访问。xv6 是针对 qemu 的 virt 机器开发的 (所谓 virt 机器是指运行 qemu 模拟器时用 “-machine virt” 选项启动的一种仿真平台) 。这个仿真平台模拟了内存（RAM）、包含引导代码的 ROM、一个连接了用户键盘和屏幕的串口，以及一个支持持久存储的磁盘。
 
 ## 2.1 抽象物理资源（Abstracting physical resources）
 
