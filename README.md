@@ -20,9 +20,9 @@ September 2, 2025
 - [第 12 章 总结](./ch12-summary.md)
 - [参考书目](./bibliography.md)
 
-本仓库是基于 [book-riscv-rev5.pdf][1] 的中文翻译。对应 [xv6-riscv-book 书源码仓库][3] bea3a08 "Issue #57"。本仓库也下载了一份 [pdf](./book-riscv-rev5.pdf)。
+本仓库是基于 [book-riscv-rev5.pdf][1] 的中文翻译。对应 [xv6-riscv-book 书源码仓库][3] bea3a08 "Issue #57"。本仓库也下载了一份 [pdf](./pdfs/book-riscv-rev5.pdf)。
 
-正文中注明的参考代码行对应的代码文件请参阅 [xv6-src-booklet-rev5.pdf][4]，对应 [xv6-riscv 代码仓库][2] 2ce32bd "PR 383"。本仓库也下载了一份 [pdf](./xv6-src-booklet-rev5.pdf)。
+正文中注明的参考代码行对应的代码文件请参阅 [xv6-src-booklet-rev5.pdf][4]，对应 [xv6-riscv 代码仓库][2] 2ce32bd "PR 383"。本仓库也下载了一份 [pdf](./pdfs/xv6-src-booklet-rev5.pdf)。
 
 本仓库所有内容遵循 [xv6-riscv-book 书源码仓库][3] 相同的 [版权许可](./LICENSE)。同时为方便中国大陆读者访问，本仓库有一个 Gitee 的 mirror 在：<https://gitee.com/unicornx/xv6-riscv-book-cn>。
 
