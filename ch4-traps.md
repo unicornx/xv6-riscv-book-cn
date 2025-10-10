@@ -6,11 +6,11 @@
 
 > This book uses *trap* as a generic term for these situations. Typically whatever code was executing at the time of the trap will later need to resume, and shouldn’t need to be aware that anything special happened. That is, we often want traps to be transparent; this is particularly important for device interrupts, which the interrupted code typically doesn’t expect. A trap forces a transfer of control into the kernel; the kernel saves registers and other state so that execution can be resumed; the kernel executes appropriate handler code (e.g., a system call implementation or device driver); the kernel restores the saved state and returns from the trap; and the original code resumes where it left off.
 
-在本书中使用 *陷阱（trap）* 作为这些情况的统称。通常，当 trap 发生时（被打断的）正在执行的指令序列稍后都需要恢复，并且从执行指令序列的角度来看并不需要知道发生了什么特殊情况。也就是说，我们通常希望 trap 是透明的；这对于设备中断尤其重要，因为被中断的代码通常对这种情况并没有预期。Trap 强制将控制权转移到内核态；内核保存寄存器和其他状态，以便将来恢复执行；内核执行适当的处​​理程序代码（例如，系统调用函数或设备驱动程序）；内核恢复保存过的状态并从 trap 返回；原先的代码从被中断处继续恢复执行。
+在本书中使用 *陷阱（trap）* 作为这些情况的统称。通常，当 trap 发生时（被打断的）正在执行的指令序列稍后都需要恢复，并且从执行指令序列的角度来看并不需要知道发生了什么特殊情况。也就是说，我们通常希望 trap 是透明的；这对于设备中断尤其重要，因为被中断的代码通常对这种情况并没有预期。Trap 强制将（对 CPU 的）控制权转移给内核；内核保存寄存器和其他状态，以便将来恢复执行；内核执行适当的处​​理程序代码（例如，系统调用函数或设备驱动程序）；内核恢复保存过的状态并从 trap 返回；原先的代码从被中断处继续恢复执行。
 
 > Xv6 handles all traps in the kernel; traps are not delivered to user code. Handling traps in the kernel is natural for system calls. It makes sense for interrupts since isolation demands that only the kernel be allowed to use devices, and because the kernel is able to share devices among multiple processes. It also makes sense for exceptions since the kernel may be able to handle the exception from user space (for an example see Chapter 5) or respond by killing the offending program.
 
-对于 xv6 来说，所有的 trap 处理都在内核中；也就是说，我们不会在用户态下执行 trap 的处理代码。这对于系统调用来说是很自然的事情。对于中断来说，也很有意义，因为这实现了隔离，确保只有在内核态才可以直接访问设备，所以我们可以把内核看成是一种供多个进程共享设备访问的机制。异常也是内核需要重点处理的 trap 类型，内核需要正确处理来自用户空间的异常（具体例子请参考第 5 章的介绍），除此之外，内核只是简单地终止（kill）触发异常的进程。
+对于 xv6 来说，所有的 trap 处理都在内核中；也就是说，我们不会在用户态下执行 trap 的处理代码。这对于系统调用来说是很自然的事情。对于中断来说，也很有意义，因为这实现了隔离，确保只有在内核态才可以直接访问设备，所以我们可以把内核看成是一种供多个进程共享的访问设备的机制。异常也是内核需要重点处理的 trap 类型，内核需要正确处理来自用户空间的异常（具体例子请参考第 5 章的介绍），除此之外，内核只是简单地终止（kill）触发异常的进程。
 
 > Xv6 trap handling proceeds in four stages: hardware actions taken by the RISC-V CPU, some assembly instructions that prepare the way for kernel C code, a C function that decides what to do with the trap, and the system call or device-driver service routine. While commonality among the three trap types suggests that a kernel could handle all traps with a single code path, it turns out to be convenient to have separate code for two distinct cases: traps from user space, and traps from kernel space. Kernel code (assembler or C) that processes a trap is often called a handler; the first handler instructions are usually written in assembler (rather than C) and are sometimes called a *vector*.
 
@@ -24,7 +24,7 @@ xv6 的 trap 处理分为四个阶段：最开始是 RISC-V CPU 内部的硬件�
 
 > Each RISC-V CPU has a set of hardware control registers that the kernel writes to tell the CPU how to handle traps, and that the kernel can read to find out about a trap that has occurred. The RISC-V documents contain the full story [3]. `riscv.h` (0500) contains definitions that xv6 uses. Here’s an outline of the most important registers:
 
-每个 RISC-V CPU 都有一组硬件控制寄存器，内核通过写入这些寄存器来告诉 CPU 如何处理 trap，内核也可以读取这些寄存器来了解一个已发生的 trap。RISC-V 文档包含完整的内容 [3]。`riscv.h` (0500) 中定义了 xv6 所使用的和 RISC-V 相关的宏和 inline 函数。以下是一些最重要的寄存器的概述：
+每个 RISC-V CPU 都有一组硬件控制寄存器，内核通过设置这些寄存器来告诉 CPU 如何处理 trap，内核也可以读取这些寄存器来了解一个已发生的 trap。RISC-V 文档包含完整的内容 [3]。`riscv.h` (0500) 中定义了 xv6 所使用的和 RISC-V 相关的宏和 inline 函数。以下是一些最重要的寄存器的概述：
 
 > - `stvec`: The kernel writes the address of its trap handler code here; the RISC-V jumps to the address in `stvec` to handle a trap.
 > - `sepc`: When a trap occurs, RISC-V saves the program counter here (since the `pc` is then overwritten with the value in `stvec`). The `sret` (return from trap) instruction copies `sepc` to the `pc`. The kernel can write `sepc` to control where `sret` goes.
@@ -33,7 +33,7 @@ xv6 的 trap 处理分为四个阶段：最开始是 RISC-V CPU 内部的硬件�
 > - `sstatus`: The SIE bit in `sstatus` controls whether device interrupts are enabled. If the kernel clears SIE, the RISC-V will defer device interrupts until the kernel sets SIE. The SPP bit indicates whether a trap came from user mode or supervisor mode, and controls to what mode `sret` returns.
 
 - `stvec`：内核在此处写入其 trap 处理程序的地址；RISC-V 会跳转到 `stvec` 中记录的地址来处理 trap。
-- `sepc`：当一个 trap 发生时，RISC-V 会在此处保存 “程序计数器（program counter）” 的值（因为当 trap 发生时，`pc` 会被 `stvec` 中的值覆盖）。指令 `sret`（ret 是 return 的缩写，表示从 trap 返回）将 `sepc` 的值复制到 `pc` 中。内核可以设置 `sepc` 的值来控制执行 `sret` 后从哪里开始恢复取指执行。
+- `sepc`：当一个 trap 发生时，RISC-V 会在此处保存 “程序计数器（program counter）” 的值（因为当 trap 发生时，`pc` 会被 `stvec` 中的值覆盖）。指令 `sret`（ret 是 return 的缩写，表示从 trap 返回）将 `sepc` 的值复制回 `pc` 中。内核可以设置 `sepc` 的值来控制执行 `sret` 后从哪里开始恢复取指执行。
 - `scause`：RISC-V 在此处放置一个数字来描述 trap 发生的原因。
 - `sscratch`：内核 trap 处理程序的代码使用 `sscratch` 来帮助其避免在保存用户寄存器之前覆盖它们。
 - `sstatus`：`sstatus` 中的 SIE 比特位控制是否启用设备中断。如果内核清除了 SIE 比特位，RISC-V 将屏蔽设备中断，直到内核重新设置 SIE 比特位。SPP 比特位指示发生 trap 时机器处于用户模式还是管理员模式，从而控制执行 `sret` 时返回到哪个模式。
@@ -68,11 +68,9 @@ xv6 的 trap 处理分为四个阶段：最开始是 RISC-V CPU 内部的硬件�
 7. 用寄存器 `stvec` 中的值覆盖 `pc`。
 8. 根据 `pc` 中新的指令地址取指执行。
 
-![](./figures/figure-4.1.png)
-
 > The CPU doesn’t switch to the kernel page table, doesn’t switch to a stack in the kernel, and doesn’t save any registers other than the `pc`. Kernel software must perform these tasks. One reason that the CPU does minimal work during a trap is to provide flexibility to software; for example, some operating systems omit a page table switch in some situations to increase trap performance.
 
-（当 trap 发生时）CPU 不会自动切换到内核页表，也不会自动切换为使用内核栈，同时也不会保存除 `pc` 之外的任何寄存器。内核程序必须自己执行这些操作。CPU 在 trap 发生期间只执行少量工作的原因之一是为软件实现提供灵活性；例如，某些操作系统在某些情况下可能会省略页表切换以提高执行 trap 的性能。
+（当 trap 发生时）CPU 不会自动切换为使用内核页表，也不会自动切换为使用内核栈，同时也不会保存除 `pc` 之外的任何寄存器。内核的代码必须自己执行这些操作。CPU 在 trap 发生期间只执行少量工作的原因之一是为软件实现提供灵活性；例如，某些操作系统在某些情况下可能会省略页表切换以提高执行 trap 的性能。
 
 > It’s worth thinking about whether any of the steps listed above could be omitted, perhaps in search of faster traps. Though there are situations in which a simpler sequence can work, many of the steps would be dangerous to omit in general. For example, suppose that the CPU didn’t switch program counters. Then a trap from user space could switch to supervisor mode while still running user instructions. Those user instructions could break user/kernel isolation, for example by modifying the `satp` register to point to a page table that allowed accessing all of physical memory. It is thus important that the CPU switch to a kernel-specified instruction address, namely `stvec`.
 
@@ -84,17 +82,19 @@ xv6 的 trap 处理分为四个阶段：最开始是 RISC-V CPU 内部的硬件�
 
 在处理 trap 的方式上，xv6 区分 trap 发生在内核态还是在用户态。本小节介绍了当 trap 发生在用户态时的处理；第 4.5 节描述了 trap 发生在内核态时的处理。
 
+![](./figures/figure-4.1.png)
+
 > A trap may occur while executing in user space if the user program makes a system call (`ecall` instruction), or does something illegal, or if a device interrupts. As shown in Figure 4.1, the high-level path of a trap from user space is `uservec` (3071), then `usertrap` (3337); and when the kernel is ready to return, `usertrap` returns to `userret` (3151) which executes `sret` to user space.
 
 如果用户程序在用户空间执行时发生系统调用（执行 `ecall` 指令），或执行了非法操作，或者发生设备中断，都会触发 trap。如图 4.1 所示，用户态 trap 的大致执行路径为：`uservec`（3071），然后是 `usertrap`（3337）；当内核准备返回时，`usertrap` 返回到 `userret`（3151）, `userret` 会执行 `sret` 返回用户空间。
 
 > A major constraint on the design of xv6’s trap handling is the fact that the RISC-V hardware does not switch page tables when it forces a trap. This means that the trap handler address in `stvec` must have a valid mapping in the user page table, since that’s the page table in force when the trap handling code starts executing. Furthermore, xv6’s trap handling code needs to switch to the kernel page table; in order to be able to continue executing after that switch, the kernel page table must also have a mapping for the handler pointed to by `stvec`.
 
-xv6 中 trap 处理设计的一个主要限制在于，RISC-V 硬件在触发 trap 时不会自动切换页表。也就是说当 trap 处理程序的代码开始执行时当前激活的仍然是用户态的页表，所以这意味着 `stvec` 中所指向的 trap 处理程序的地址必须在用户页表中具备有效的映射。此外，xv6 的 trap 处理代码需要负责将页表切换为内核页表；为了能够在切换后能够继续执行，内核页表中对 `stvec` 所指向的 trap 处理程序也要具备有效的映射。
+xv6 在 trap 处理设计上存在的一个主要限制在于，RISC-V 硬件在触发 trap 时不会自动切换页表。也就是说当 trap 处理程序的代码开始执行时当前激活的仍然是用户态的页表，所以这意味着 `stvec` 中所指向的 trap 处理程序的地址必须在用户页表中具备有效的映射。此外，xv6 的 trap 处理代码需要负责将页表切换为内核页表；为了能够在切换后能够继续执行，内核页表中对 `stvec` 所指向的 trap 处理程序也要具备有效的映射。
 
 > Xv6 satisfies these requirements using a trampoline page. This page contains `uservec`, the xv6 trap handling code that `stvec` points to. The trampoline page is mapped in every process’s page table at virtual address `0x3ffffff000` (called `TRAMPOLINE`), which is the last page in the virtual address space so that it will be above memory that programs use for themselves. The trampoline page is mapped at the same virtual address in the kernel page table. See Figure 2.3 and Figure 3.3. Because the trampoline page is mapped in the user page table, traps can start executing there in supervisor mode. Because the trampoline page is mapped at the same address in the kernel address space, the trap handler can continue to execute after it switches to the kernel page table.
 
-xv6 使用一个 “蹦床页（trampoline page）” 来满足以上要求。这个 trampoline page 中存放了 `uservec` 函数的指令，即 `stvec` 指向的 xv6 的 trap 处理程序。每个进程的页表（即用户页表）都会将这个 trampoline page 映射到进程地址空间中的虚拟地址 `0x3ffffff000` 处（这个地址在代码中定义为 `TRAMPOLINE`），这个 trampoline page 是虚拟地址空间的最后一个 page，因此它位于程序会使用的内存地址空间的上方。trampoline page 在内核页表中被映射为相同的虚拟地址。参见图 2.3 和图 3.3。由于用户页表中有效映射了 trampoline page，因此当处理器进入管理员模式开始处理 trap 时可以从 `TRAMPOLINE` 那里开始执行。同时由于 trampoline page 也映射到内核地址空间中的相同地址，因此 trap 处理程序在切换到内核页表后依然可以继续执行。
+xv6 使用一个 “蹦床页（trampoline page）” 来满足以上要求。这个 trampoline page 中存放了 `uservec` 函数的指令，即 `stvec` 指向的 xv6 的 trap 处理程序。每个进程的页表（即用户页表）都会将这个 trampoline page 映射到进程地址空间中的虚拟地址 `0x3ffffff000` 处（这个地址在代码中定义为 `TRAMPOLINE`），这个 trampoline page 是虚拟地址空间的最后一个 page，因此它位于程序会使用的内存地址空间的最上方。trampoline page 在内核页表中被映射为相同的虚拟地址。参见图 2.3 和图 3.3。由于用户页表中有效映射了 trampoline page，因此当处理器进入管理员模式开始处理 trap 时可以从 `TRAMPOLINE` 那里开始执行。同时由于 trampoline page 也映射到内核地址空间中的相同地址，因此 trap 处理程序在切换到内核页表后依然可以继续执行。
 
 > The code for the `uservec` trap handler is in `trampoline.S` (3071). When `uservec` starts, all 32 registers contain values owned by the interrupted user code. These 32 values need to be saved somewhere in memory, so that later on the kernel can restore them before returning to user space. Storing to memory requires use of a register to hold the store's destination address, but at this point there are no general-purpose registers available! Luckily RISC-V provides a helping hand in the form of the `sscratch` register. The `csrw` instruction at the start of `uservec` saves `a0` in `sscratch`. Now `uservec` has one register (`a0`) to play with.
 
@@ -118,11 +118,11 @@ xv6 使用一个 “蹦床页（trampoline page）” 来满足以上要求。�
 
 > The first step in returning to user space is the call to `prepare_return` (3404). This function sets up the RISC-V control registers to prepare for a future trap from user space: setting `stvec` to `uservec` and preparing the trapframe fields that `uservec` relies on. `prepare_return` sets `sepc` to the previously saved user program counter. Finally, `usertrap` returns back to `userret` in the trampoline page (3151), passing back a pointer to the user page table in `a0`.
 
-当我们开始准备返回用户空间的时候，第一步是调用 `prepare_return` (3404)。此函数设置 RISC-V 控制寄存器，为下一次用户空间的 trap 做好准备，这些准备工作包括：将 `stvec` 设置为 `uservec`，并为执行 `uservec` 准备好所需要的 trapframe 。`prepare_return` 将 `sepc` 设置为先前保存的用户 program counter。最后，`usertrap` 返回 trampoline page 上的 `userret` (3151)，并通过 `a0` 传递了一个指向进程用户页表的指针。
+当我们开始准备返回用户空间的时候，第一步是调用 `prepare_return` (3404)。此函数设置 RISC-V 控制寄存器，为下一次用户空间的 trap 做好准备，这些准备工作包括：将 `stvec` 设置为 `uservec`，并为执行 `uservec` 准备好所需要的 trapframe。`prepare_return` 将 `sepc` 设置为先前保存的用户 program counter。最后，`usertrap` 返回 trampoline page 上的 `userret` (3151)，并通过 `a0` 传递了一个指向进程用户页表的指针。
 
 > `userret` switches `satp` to the process’s user page table. Recall that the user page table maps both the trampoline page and `TRAPFRAME`, but nothing else from the kernel. The trampoline page mapping at the same virtual address in user and kernel page tables allows `userret` to keep executing after changing `satp`. From this point on, the only data `userret` can use is the register contents and the content of the trapframe. `userret` loads the `TRAPFRAME` address into `a0`, restores saved user registers from the trapframe via `a0`, restores the saved user `a0`, and executes `sret` to return to user space.
 
-`userret` 将 `satp` 切换到进程的用户页表。回想一下，用户页表中只映射了 trampoline（映射到 `TRAMPOLINE`）和 trapframe（映射到 `TRAPFRAME`），除此之外，并没有映射内核的其他内容。由于 trampoline 在用户和内核页表中的虚拟地址相同，因此 `userret` 在更改 `satp` 后仍能继续执行。从此时起，`userret` 唯一可以使用的数据是寄存器内容和 trapframe 的内容。`userret` 先将 `TRAPFRAME` 地址加载到 `a0`，然后通过 `a0` 从 trapframe 恢复保存的（除 `a0` 之外其他的）用户寄存器，最后恢复保存的 `a0`，`userret` 的最后执行 `sret` 返回用户空间。
+`userret` 将 `satp` 切换到进程的用户页表。回想一下，用户页表中只映射了 trampoline（映射到 `TRAMPOLINE`）和 trapframe（映射到 `TRAPFRAME`），除此之外，并没有映射内核的其他内容。由于 trampoline 在用户和内核页表中的虚拟地址相同，因此 `userret` 在更改 `satp` 后仍能继续执行。从此时起，`userret` 唯一可以使用的数据是寄存器内容和 trapframe 的内容。`userret` 先将 `TRAPFRAME` 地址加载到 `a0`，然后通过 `a0` 从 trapframe 恢复保存的（除 `a0` 之外其他的）用户寄存器，最后恢复保存的 `a0`，`userret` 最后通过执行 `sret` 返回用户空间。
 
 > `uservec` and `userret` are written in assembly language because it is difficult to write C code to save or restore all the registers or survive switching page tables.
 
@@ -132,7 +132,7 @@ xv6 使用一个 “蹦床页（trampoline page）” 来满足以上要求。�
 
 > User programs call library functions in order to make system calls. For example, the shell displays a prompt with this function call (in `user/sh.c`):
 
-用户程序调用库函数来发起系统调用。例如，shell 应用程序通过以下函数调用打印一个提示符（在 `user/sh.c` 中）：
+用户程序通过调用库函数来发起系统调用。例如，shell 应用程序通过以下函数调用打印一个提示符（在 `user/sh.c` 中）：
 
 ```c
 write(2, "$ ", 2);
@@ -140,7 +140,7 @@ write(2, "$ ", 2);
 
 > Here’s the library function, in `user/usys.S`:
 
-库函数定义如下，具体定义在 `user/usys.S`：
+该库函数定义如下，具体定义在 `user/usys.S` 中：
 
 ```asm
 write:
@@ -173,7 +173,7 @@ C 编译器为这个函数调用生成相关的指令将三个参数分别存放
 
 > Some system calls pass pointers as arguments, and the kernel must use those pointers to read or write user memory. The `write` system call, for example, passes the kernel a user-space pointer to the data to be written. Such pointers pose two challenges. First, the user program may be buggy or malicious, and may pass the kernel an invalid pointer or a pointer intended to trick the kernel into accessing kernel memory instead of user memory. Second, the xv6 kernel page table mappings are not the same as the user page table mappings, so the kernel cannot use ordinary instructions to load or store from user-supplied addresses.
 
-一些系统调用通过参数传递指针，内核需要使用这些指针来读取或写入用户内存。例如，`write` 系统调用向内核传递一个指针，该指针指向用户空间中存放有待写出数据的缓存。传递这样的指针带来了两个挑战。首先，用户程序可能存在缺陷或者纯粹怀有恶意，它们可能会向内核传递无效指针，或传递一个指针试图诱骗内核进而访问内核内存而不是用户内存。其次，由于 xv6 内核页表与用户页表的映射方式不同，因此内核无法直接使用普通指令从用户提供的地址读取或存储数据。
+一些系统调用通过参数传递指针，内核需要使用这些指针来读取或写入用户内存。例如，`write` 系统调用向内核传递一个指针，该指针指向用户空间中存放有待写出数据的缓存。传递这样的指针带来了两个挑战。首先，用户程序可能存在缺陷或者纯粹怀有恶意，它们可能会向内核传递无效指针，或传递一个指针试图诱骗内核进而访问内核内存而不是用户内存。其次，由于 xv6 内核页表与用户页表的映射方式不同，因此内核无法直接使用普通指令根据用户提供的地址读取或存储数据。
 
 > The kernel implements functions that safely transfer data to and from user-supplied addresses. `fetchstr` is an example (3624). File system calls such as `exec` use `fetchstr` to retrieve string file-name arguments from user space. `fetchstr` calls `copyinstr` to do the hard work.
 
