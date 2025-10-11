@@ -2,7 +2,7 @@
 
 > A *driver* is the code in an operating system that manages a particular device: it configures the device hardware, tells the device to perform operations, handles the resulting interrupts, and interacts with processes using the device. Driver code can be tricky because a driver executes concurrently with the device, and often concurrently with processes using the device. In addition, the driver must understand the device’s hardware interface, which can be complex and poorly documented.
 
-*驱动（driver）* 是操作系统中管理特定设备的代码：它配置硬件设备、通知设备执行操作、处理产生的中断以及与可能正在使用设备的进程交互。编写驱动程序代码可能比较棘手，因为执行驱动程序的硬件（处理器）和驱动程序管理的硬件并非同一个设备，并且通常与使用该设备的进程同时运行。（译者注：这也是下文要提到的中断等异步处理的来源）。此外，编写驱动程序必须了解设备的硬件接口，而这可能很复杂且常常缺少良好的文档说明。
+*驱动（driver）* 是操作系统中管理特定设备的代码：它配置硬件设备、通知设备执行操作、处理产生的中断以及与正在使用设备的进程进行交互。编写驱动程序代码可能比较棘手，因为执行驱动程序的硬件（处理器）和驱动程序管理的硬件并非同一个设备，并且通常与使用该设备的进程并行运行。（译者注：这也是下文要提到的中断等异步处理的来源）。此外，编写驱动程序必须了解设备的硬件接口，而这可能很复杂且常常缺少良好的文档说明。
 
 > Devices that need attention from the operating system can usually be configured to generate interrupts, which are one type of trap. The kernel trap handling code recognizes when a device has raised an interrupt and calls the driver’s interrupt handler; in xv6, this dispatch happens in `devintr` (3506).
 
@@ -10,21 +10,21 @@
 
 > Many device drivers execute code in two contexts: a *top half* that runs in a process’s kernel thread, and a *bottom half* that executes at interrupt time. The top half is called via system calls such as `read` and `write` that want the device to perform I/O. This code may ask the hardware to start an operation (e.g., ask the disk to read a block); then the code waits for the operation to complete. Eventually the device completes the operation and raises an interrupt. The driver’s interrupt handler, acting as the bottom half, figures out what operation has completed, wakes up a waiting process if appropriate, and tells the hardware to start work on the next operation, if any.
 
-许多设备驱动程序的代码在两种上下文环境中执行：一种称之为 *上半部分（top half）*, 即在进程的内核线程中执行，另一种称之为 *下半部分（bottom half）*，即运行在中断中。上半部分通过 “系统调用（system call）” 触发，譬如调用 `read` 和 `write` 通知设备执行输入输出操作。此代码可能会要求硬件启动某些操作（例如，要求磁盘读取一个 block）；然后代码等待操作完成。最终，设备完成操作并触发中断。此时驱动程序的中断处理程序开始运行，执行下半部分，判断已完成的操作是什么，如果需要的话还要唤醒等待的进程，以及告诉硬件启动下一个操作。
+许多设备驱动程序的代码在两种上下文环境中执行：一种称之为 *上半部分（top half）*, 即在进程的内核线程中执行，另一种称之为 *下半部分（bottom half）*，即运行在中断中。上半部分通过 “系统调用（system call）” 触发，譬如调用 `read` 和 `write` 通知设备执行输入输出操作。此代码可能会要求硬件启动某些操作（例如，要求磁盘读取一个 “块（block）”）；然后代码等待操作完成。最终，设备完成操作并触发中断。此时驱动程序的中断处理程序开始运行，执行下半部分，判断已完成的操作是什么，如果需要的话还要唤醒等待的进程，以及告诉硬件启动下一个操作。
 
 ## 6.1 代码讲解：控制台输入（Code: Console input）
 
 > The console driver (6950) is a simple illustration of driver structure. The console driver accepts characters typed by a human, via the *UART* serial-port hardware attached to the RISC-V. The console driver accumulates a line of input at a time, processing special input characters such as backspace and control-u. User processes, such as the shell, use the `read` system call to fetch lines of input from the console. When you type input to xv6 in QEMU, your keystrokes are delivered to xv6 by way of QEMU’s simulated UART hardware.
 
-“控制台（console）” 驱动程序 (6950) 是一个很好的描述驱动程序结构的例子。控制台驱动程序通过连接到 RISC-V 处理器的 *UART* 串行端口设备接收人工输入的字符（译者注：UART 的全称是 Universal Asynchronous Receiver/Transmitter）。控制台驱动程序每次累积一行输入，并处理其中的特殊输入字符，例如 “退格键（backspace）” 和 control-u（译者注：指同时按下 Ctrl 键和字符 u 键）。用户进程（例如 shell）使用 `read` 系统调用从控制台获取输入行。当你在 QEMU 中向 xv6 输入时，你的按键操作将通过 QEMU 模拟的 UART 硬件传递给 xv6。
+“控制台（console）” 驱动程序 (6950) 是一个很好的描述驱动程序结构的例子。控制台驱动程序通过连接到 RISC-V 处理器的 *UART* 串行端口设备接收人工输入的字符（译者注：UART 的全称是 Universal Asynchronous Receiver/Transmitter）。控制台驱动程序每次会累积一行的字符输入，这期间会处理其中的一些特殊的输入字符，例如 “退格键（backspace）” 和 control-u（译者注：指同时按下 Ctrl 键和字符 u 键）。用户进程（例如 shell）使用 `read` 系统调用从控制台获取输入行。当你在 QEMU 中向 xv6 输入时，你的按键产生的字符数据将通过 QEMU 模拟的 UART 硬件传递给 xv6。
 
 > The UART hardware that the driver talks to is a 16550 chip [13] emulated by QEMU. On a real computer, a 16550 would manage an RS232 serial link connecting to a terminal or other computer. When running QEMU, it’s connected to your keyboard and display.
 
-驱动程序负责控制的 UART 硬件是 QEMU 模拟的 16550 芯片 [13]。在真实计算机上，16550 芯片会管理连接到终端或其他计算机的 RS232 串行链路。在 QEMU 上，模拟的 16550 芯片直接连接到键盘和显示器。
+驱动程序负责控制的 UART 硬件是 QEMU 模拟的 16550 芯片 [13]。在真实计算机上，16550 芯片会管理一个连接到终端或其他计算机的 RS232 串行链路。在 QEMU 上，模拟的 16550 芯片直接连接到键盘和显示器。
 
 > The UART hardware appears to software as a set of *memory-mapped* control registers. That is, there are some physical addresses that are connected to the UART device, so that loads and stores interact with the device hardware rather than RAM. The memory-mapped addresses for the UART start at 0x10000000, or `UART0` (0220). There are a handful of UART control registers, each the width of a byte. Their offsets from `UART0` are defined in (7221). For example, the `LSR` register contains bits that indicate whether input characters are waiting to be read by the driver. These characters (if any) are available for reading from the `RHR` register. Each time one is read, the UART hardware deletes it from an internal FIFO of waiting characters, and clears the “ready” bit in `LSR` when the FIFO is empty. To transmit, the driver writes a byte to the `THR` register, which causes the UART to append the byte to a FIFO of bytes that the UART will send on the RS232 serial link. The UART transmit and receive hardware are largely independent of each other.
 
-对于 UART 硬件，从软件的角度来看，就是一组 *内存映射（memory-mapped）* 的控制寄存器。也就是说，一些物理地址连接着 UART 设备（译者注：即我们可以通过这些物理地址访问 UART 设备），同样是调用 “加载（load）” 和 “存储（store）” 指令，但此时访问的是其他设备硬件而不是内存。UART 的内存映射的起始物理地址是 0x10000000，代码中对应的是宏常量 `UART0` (0220)。UART 有少量控制寄存器，每个寄存器的宽度为一个字节。它们相对于 `UART0` 的偏移量值定义在 (7221) 中。例如，`LSR` 寄存器中的比特位用于指示输入字符是否正在等待驱动读取。我们可以从 `RHR` 寄存器读取字符（如果有的话）。每次读取一个字符时，UART 硬件都会将其从内部缓存字符的 “队列（FIFO，First In First Out 的缩写）” 中删除，并在队列为空时清除 `LSR` 中的 “就绪（ready）” 位。要发送数据时，驱动程序会将一个字节写入 `THR` 寄存器，这会导致 UART 将该字节添加到队列中，该队列包含了 UART 将在 RS232 串行链路上发送的字节。UART 中负责发送和接收的硬件单元在很大程度上是相互独立的。
+对于 UART 硬件，从软件的角度来看，就是一组 *内存映射（memory-mapped）* 的控制寄存器。也就是说，一些物理地址连接着 UART 设备（译者注：即我们可以通过这些物理地址访问 UART 设备），同样是调用 “加载（load）” 和 “存储（store）” 指令，但此时访问的硬件是外设而不是内存。对于 UART 设备来说其内存映射的起始物理地址是 0x10000000，代码中对应的是宏常量 `UART0` (0220)。UART 有少量控制寄存器，每个寄存器的宽度为一个字节。它们相对于 `UART0` 的偏移量值定义在 (7221) 中。例如，`LSR` 寄存器中的比特位用于指示输入字符是否正在等待驱动读取。我们可以从 `RHR` 寄存器中读取字符（如果有的话）。每次读取一个字符时，UART 硬件都会将其从一个内部缓存字符的 “队列（FIFO，First In First Out 的缩写）” 中删除，并在队列为空时清除 `LSR` 中的 “就绪（ready）” 位。要发送数据时，驱动程序会将一个字节写入 `THR` 寄存器，这会导致 UART 将该字节添加到另一个队列中，而这个队列包含了 UART 将在 RS232 串行链路上发送的字节。UART 中负责发送和接收的硬件单元在很大程度上是相互独立的。
 
 > Xv6’s `main` calls `consoleinit` (7154) to initialize the UART hardware. This code configures the UART to generate a receive interrupt when the UART receives each byte of input, and a *transmit complete* interrupt each time the UART finishes sending a byte of output (7251).
 
@@ -36,7 +36,7 @@ xv6 的 `main` 函数调用 `consoleinit` (7154) 来初始化 UART 硬件。这�
 
 > When the user types a character, the UART hardware asks the RISC-V to raise an interrupt, which activates xv6’s trap handler. The trap handler calls `devintr` (3506), which looks at the RISC-V `scause` register to discover that the interrupt is from an external device. Then it asks a hardware unit called the PLIC [3] to tell it which device interrupted (3514). If it was the UART, `devintr` calls `uartintr`.
 
-当用户输入字符时，UART 硬件会向 RISC-V 处理器发出中断，从而激活 xv6 的 trap handler。trap handler 会调用 `devintr` (3506)，它会查看 RISC-V 的 `scause` 寄存器，以确定中断是否来自外部设备。如果是来自外部设备，它会请求一个名为 PLIC [3] 的硬件单元告知它哪个设备发出了中断 (3514)。如果是 UART，`devintr` 则调用 `uartintr`。
+当用户输入字符时，UART 硬件会向 RISC-V 处理器发出中断，从而激活 xv6 的 trap “处理函数（handler）”。trap handler 会调用 `devintr` (3506)，它会查看 RISC-V 的 `scause` 寄存器，以确定中断是否来自外部设备。如果是来自外部设备，它会访问一个名为 PLIC [3] 的硬件模块从而得知是哪个设备发出了中断 (3514)。如果是 UART，`devintr` 则调用 `uartintr`。
 
 > `uartintr` (7354) reads any waiting input characters from the UART hardware and hands them to `consoleintr` (7107); it doesn’t wait for characters, since future input will raise a new interrupt. The job of `consoleintr` is to accumulate input characters in `cons.buf` until a whole line arrives. `consoleintr` treats backspace and a few other characters specially. When a newline arrives, `consoleintr` wakes up a waiting `consoleread` (if there is one).
 
@@ -44,7 +44,7 @@ xv6 的 `main` 函数调用 `consoleinit` (7154) 来初始化 UART 硬件。这�
 
 > Once woken, `consoleread` will observe a full line in `cons.buf`, copy it to user space, and return (via the system call machinery) to user space.
 
-一旦被唤醒，`consoleread` 将会获取到 `cons.buf` 中的一整行字符并将其复制到用户空间，然后（通过系统调用机制）返回到用户空间。
+一旦被唤醒，`consoleread` 将会从 `cons.buf` 中获取一整行字符并将其复制到用户空间，然后（通过系统调用机制）返回到用户空间。
 
 ## 6.2 代码讲解：控制台输出（Code: Console output）
 
@@ -55,6 +55,10 @@ xv6 的 `main` 函数调用 `consoleinit` (7154) 来初始化 UART 硬件。这�
 > Each time the UART finishes sending a byte, it generates an interrupt. `uartintr` calls `uartstart`, which checks that the device really has finished sending, and hands the device the next buffered output character. Thus if a process writes multiple bytes to the console, typically the first byte will be sent by `uartputc`’s call to `uartstart`, and the remaining buffered bytes will be sent by `uartstart` calls from `uartintr` as transmit complete interrupts arrive.
 
 UART 每次发送完一个字节后，都会产生一个中断。`uartintr`（中断处理程序）会调用 `uartstart`，后者会检查设备是否确实已完成发送，并将下一个缓冲的输出字符交给设备。因此，如果一个进程向控制台写入多个字节，通常第一个字节会由 `uartputc` 调用 `uartstart` 发送，其余缓冲的字节则会在 “发送完成” 中断到达时由 `uartintr` 调用 `uartstart` 发送。
+
+译者注：上面两段的描述过时了，和代码匹配不上。下面按照自己的理解重新简单写一下。
+
+对连接到控制台的文件描述符执行 `write` 系统调用时，程序执行路径最终会到达 `uartwrite` (7782)。该函数会和 `uartintr` 配合，在 "transmit complete" 中断的驱动下将参数 `buf` 数组中的字符逐个发送出去。具体做法是在 `uartwrite` 中有一个循环，检测 `tx_busy` 这个标志是否为真（1）。如果为真则调用 `sleep` 在 `tx_chan` 上等待。`uartintr` 这个中断处理函数中如果发现收到 "transmit complete" 中断，则将 `tx_busy` 改为假（0）并唤醒睡眠的进程，进程醒来后会从 `buf` 中取出一个字符发送出去，并将 `tx_busy` 重置为 1 后进入下一个等待循环。如此往复，直到将 `buf` 中的字符全部发送完毕。
 
 > A general pattern to note is the decoupling of device activity from process activity via buffering and interrupts. The console driver can process input even when no process is waiting to read it; a subsequent read will see the input. Similarly, processes can send output without having to wait for the device. This decoupling can increase performance by allowing processes to execute concurrently with device I/O, and is particularly important when the device is slow (as with the UART) or needs immediate attention (as with echoing typed characters). This idea is sometimes called *I/O concurrency*.
 
@@ -90,13 +94,13 @@ xv6 使用定时器中断来保持对当前时间的感知，并在 “计算密
 
 > The fact that kernel code can be interrupted by a timer interrupt that forces a context switch via `yield` is part of the reason why early code in `usertrap` is careful to save state such as `sepc` before enabling interrupts. These context switches also mean that kernel code must be written in the knowledge that it may move from one CPU to another without warning.
 
-内核代码的执行可以被定时器中断打断，并通过 `yield` 强制进行上下文切换，这也是 `usertrap` 在函数开始部分在启用中断之前小心地保存 `sepc` 等状态的原因之一。这些上下文切换也意味着内核代码必须在编写时考虑到它可能会在没有任何感觉的情况下从一个 CPU 被转移到另一个 CPU。
+内核代码的执行可以被定时器中断打断，并通过 `yield` 强制进行上下文切换，这也是 `usertrap` 在函数开始部分在启用中断之前小心地保存 `sepc` 等状态的原因之一。这些上下文切换也意味着内核代码必须在编写时考虑到进程可能会在没有任何感觉的情况下从一个 CPU 被转移到另一个 CPU。
 
 ## 6.5 现实世界（Real world）
 
 > Xv6, like many operating systems, allows interrupts and even context switches (via `yield`) while executing in the kernel. The reason for this is to retain quick response times during complex system calls that run for a long time. However, as noted above, allowing interrupts in the kernel is the source of some complexity; as a result, a few operating systems allow interrupts only while executing user code.
 
-与许多操作系统一样，xv6 在内核执行时允许中断，甚至允许上下文切换（通过 `yield`）。这样做的目的是为了在执行一些耗时较长的复杂系统调用时保持快速响应。然而，如上所述，在内核中允许中断会带来一些复杂性；因此，一些操作系统仅在用户态执行代码时才允许中断。
+与许多操作系统一样，xv6 在内核态执行时允许中断，甚至允许上下文切换（通过 `yield`）。这样做的目的是为了在执行一些耗时较长的复杂系统调用时保持快速响应。然而，如上所述，在内核中允许中断会带来一些复杂性；因此，一些操作系统仅在用户态执行代码时才允许中断。
 
 > Supporting all the devices on a typical computer in its full glory is much work, because there are many devices, the devices have many features, and the protocol between device and driver can be complex and poorly documented. In many operating systems, the drivers account for more code than the core kernel.
 
@@ -104,7 +108,7 @@ xv6 使用定时器中断来保持对当前时间的感知，并在 “计算密
 
 > The UART driver retrieves data a byte at a time by reading the UART control registers; this pattern is called *programmed I/O*, since software is driving the data movement. Programmed I/O is simple, but too slow to be used at high data rates. Devices that need to move lots of data at high speed typically use *direct memory access* (DMA). DMA device hardware directly writes incoming data to RAM, and reads outgoing data from RAM. Modern disk and network devices use DMA. A driver for a DMA device would prepare data in RAM, and then use a single write to a control register to tell the device to process the prepared data.
 
-UART 驱动程序通过读取 UART 控制寄存器，一次获取一个字节的数据；由于数据的搬运由软件驱动，这种模式称为 *程序控制输入输出（programmed I/O）*。程序控制输入输出实现简单简单，但速度太慢，无法支持高速吞吐的需求。需要高速搬运大量数据的设备通常使用 *直接内存访问（direct memory access）* (简称 DMA)。DMA 设备硬件直接将读取到的数据写入 RAM，并从 RAM 将数据取出发送出去。现代磁盘和网络设备都使用 DMA。DMA 设备的驱动程序会将（需要发送的）数据在内存中准备好，然后只要通过对（DMA 设备的）控制寄存器发起一次写操作，通知设备自己去处理准备好的数据就好了。
+UART 驱动程序通过读取 UART 控制寄存器，一次获取一个字节的数据；由于数据的搬运由软件驱动，这种模式称为 *程序控制输入输出（programmed I/O）*。程序控制输入输出实现简单简单，但速度太慢，无法支持高速吞吐的需求。需要高速搬运大量数据的设备通常使用 *直接内存访问（direct memory access）* (简称 DMA)。DMA 设备硬件直接将读取到的数据写入 RAM，并从 RAM 中将数据取出发送出去。现代磁盘和网络设备都使用 DMA。DMA 设备的驱动程序会将（需要发送的）数据在内存中准备好，然后只要通过对（DMA 设备的）控制寄存器发起一次写操作，通知设备自己去处理准备好的数据就好了。
 
 > Interrupts make sense when a device needs attention at unpredictable times, and not too often. But interrupts have high CPU overhead. Thus high speed devices, such as network and disk controllers, use tricks that reduce the need for interrupts. One trick is to raise a single interrupt for a whole batch of incoming or outgoing requests. Another trick is for the driver to disable interrupts entirely, and to check the device periodically to see if it needs attention. This technique is called *polling*. Polling makes sense if the device performs operations at a high rate, but it wastes CPU time if the device is mostly idle. Some drivers dynamically switch between polling and interrupts depending on the current device load.
 
