@@ -16,19 +16,19 @@ xv6 会在两种情况下将一个处理器上的进程从一个切换到另一�
 
 > Implementing multiplexing poses a few challenges. First, how to switch from one process to another? The basic idea is to save and restore CPU registers, though the fact that this cannot be expressed in C makes it tricky. Second, how to force switches in a way that is transparent to user processes? Xv6 uses the standard technique in which a hardware timer’s interrupts drive context switches. Third, all of the CPUs switch among the same set of processes, so a locking plan is necessary to avoid mistakes such as two CPUs deciding to run the same process at the same time. Fourth, a process’s memory and other resources must be freed when the process exits, but it cannot finish all of this itself. Fifth, each CPU of a multi-core machine must remember which process it is executing so that system calls affect the correct process’s kernel state.
 
-实现复用面临一些挑战。首先，如何从一个进程切换到另一个进程？基本思想是需要保存和恢复处理器的寄存器，但对于这些操作，由于无法用 C 语言编写，因此比较棘手。其次，如何对用户进程以透明的方式实现强制切换？xv6 采用的是常用的方法，即通过硬件定时器的中断触发上下文切换。第三，因为需要支持多个处理器在同一组进程之间切换，因此需要引入锁机制来避免两个 CPU 同时决定运行同一个进程等错误。第四，进程退出时必须释放其拥有的内存和其他资源，但它无法自行完成所有这些操作。第五，多核机器的每个处理器必须记住它正在执行哪个进程，以便系统调用能够确保只会涉及正确的进程及其内核状态。
-
-![](./figures/figure-8.1.png)
+实现复用面临一些挑战。首先，如何从一个进程切换到另一个进程？基本思想是需要保存和恢复处理器的寄存器，但对于这些操作，由于无法用 C 语言编写，因此比较棘手。其次，如何对用户进程以透明的方式实现强制切换？xv6 采用的是常用的方法，即通过硬件定时器的中断触发上下文切换。第三，因为需要支持同一组进程在多个处理器之间切换，因此需要引入锁机制来避免两个 CPU 同时决定运行同一个进程等错误。第四，进程退出时必须释放其拥有的内存和其他资源，但它无法自行完成所有这些操作。第五，多核机器的每个处理器必须记住它正在执行哪个进程，以便系统调用能够确保只会涉及正确的进程及其内核的状态。
 
 ## 8.2 上下文切换概述（Context switch overview）
 
 > The term “context switch” refers to the steps involved in a CPU leaving off execution of one kernel thread (usually for later resumption), and resuming execution of a different kernel thread; this switching is the heart of multiplexing. Xv6 does not directly context switch from one process’s kernel thread to another process’s kernel thread; instead, a kernel thread gives up the CPU by context-switching to that CPU’s “scheduler thread,” and the scheduler thread picks a different process’s kernel thread to run, and context-switches to that thread.
 
-“上下文切换（context switch）” 是指 CPU 停止执行一个内核线程（通常是为了稍后恢复），并恢复执行另一个内核线程的操作步骤；这种切换是多路复用的核心。xv6 不会直接从一个进程的内核线程切换到另一个进程的内核线程；相反，内核线程会通过上下文切换到该 CPU 的 “调度线程（scheduler thread）” 来放弃 CPU，然后调度线程会选择另一个进程的内核线程来运行，并上下文切换到该线程。
+“上下文切换（context switch）” 是指 CPU 停止执行一个内核线程（通常是为了稍后恢复），并恢复执行另一个内核线程的操作步骤；这种切换是多路复用的核心。xv6 不会直接从一个进程的内核线程切换到另一个进程的内核线程；相反，内核线程会通过上下文切换到该 CPU 的 “调度线程（scheduler thread）” 来放弃 CPU，然后调度线程会选择另一个进程的内核线程来运行，并将上下文切换到该线程。
 
 > At a broader scope, the steps involved in switching from one user process to another are illustrated in Figure 8.1: a trap (system call or interrupt) from the old process’s user space to its kernel thread, a context switch to the current CPU’s scheduler thread, a context switch to a new process’s kernel thread, and a trap return to the user-level process.
 
 从更广泛的角度来看，图 8.1 说明了从一个用户进程切换到另一个用户进程所涉及的步骤：通过一个系统调用或中断从上一个进程的用户空间 “陷入（trap）” 到其内核线程、然后上下文切换到当前 CPU 的调度线程、再上下文切换到新进程的内核线程，最后通过 trap 返回到新进程的用户态。
+
+![](./figures/figure-8.1.png)
 
 ## 8.3 代码讲解：上下文切换（Code: Context switching）
 
@@ -38,7 +38,7 @@ xv6 会在两种情况下将一个处理器上的进程从一个切换到另一�
 
 > Each thread’s `struct proc` includes a `struct context` that holds the thread’s saved registers when it is not running. A CPU’s scheduler thread’s `struct context` is in that CPU’s `struct cpu`. When thread X wishes to switch to thread Y, thread X calls `swtch(&X’s context, &Y’s context)`. `swtch()` saves the current CPU registers in X’s context, then loads the content of Y’s context into the CPU registers, then returns.
 
-每个线程的 `struct proc` 都包含一个 `struct context`，用于存放线程在非运行时需要保存的寄存器的内容。用于表示一个 CPU 的结构体 `struct cpu` 中也有一个 `struct context` 用于存放每个 CPU 对应的调度线程在非运行时的需要保存的寄存器的内容。当线程 X 希望切换到线程 Y 时，线程 X 会调用 `swtch(&X’s context, &Y’s context)`。`swtch()` 将当前 CPU 的寄存器内容保存到 X 的上下文中，然后将 Y 上下文的内容加载到 CPU 寄存器中，然后返回。
+每个线程的 `struct proc` 都包含一个 `struct context`，用于存放当一个人线程不在 CPU 上运行时需要保存的寄存器的内容。用于表示一个 CPU 的结构体 `struct cpu` 中也有一个 `struct context` 用于存放每个 CPU 对应的调度线程在其非运行时的需要保存的寄存器的内容。当线程 X 希望切换到线程 Y 时，线程 X 会调用 `swtch(&X’s context, &Y’s context)`。`swtch()` 在返回前将当前 CPU 的寄存器内容保存到 X 的上下文中，然后将 Y 上下文的内容加载到 CPU 寄存器中。
 
 > Here’s an abbreviated copy of `swtch`:
 
@@ -77,11 +77,11 @@ swtch:
 
 > The last section looked at the internals of `swtch`; now let’s take `swtch` as a given and examine switching from one process’s kernel thread through the scheduler to another process. The scheduler exists in the form of a special thread per CPU, each running the `scheduler` function. This function is in charge of choosing which process to run next. Each CPU has its own scheduler thread because more than one CPU may be looking for something to run at any given time. Process switching always goes through the scheduler thread, rather than direct from one process to another, to avoid some situations in which there would be no stack on which to execute the scheduler (e.g. if the old process has exited, or there is no other process that currently wants to run).
 
-上一节介绍了 `swtch` 的内部实现；现在，我们以 `swtch` 为例，分析如何通过 scheduler 从一个进程的内核线程切换到另一个进程。scheduler 在每个 CPU 上都安排了一个特殊的线程，这个特殊的线程运行 `scheduler` 函数。该函数负责选择下一个在该 CPU 上运行的进程。每个 CPU 都有自己的 scheduler 线程，因为在任意时刻，可能有多个 CPU 正在等待执行任务。进程切换总是通过调度线程进行，而不是直接从一个进程切换到另一个进程，以避免出现没有栈来执行调度程序的情况（例如，如果旧进程已退出，而当前没有其他进程想要运行）。
+上一节介绍了 `swtch` 的内部实现；现在，我们以 `swtch` 为例，分析如何通过调度器（scheduler）从一个进程的内核线程切换到另一个进程。调度器在每个 CPU 上都安排了一个特殊的线程，这个特殊的线程运行 `scheduler` 函数（译者注，下文将调度器在每个 CPU 上安排的线程也称为 scheduler 线程或调度线程）。该函数负责选择下一个在该 CPU 上运行的进程。每个 CPU 都有自己的 scheduler 线程，因为在任意时刻，可能有多个 CPU 正在等待执行任务。进程切换总是通过调度线程进行，而不是直接从一个进程切换到另一个进程，以避免出现没有栈来执行调度程序的情况（例如，如果旧进程已经退出，而当前也没有其他进程想要运行）。
 
 > A process that wants to give up the CPU must acquire its own process lock `p->lock`, release any other locks it is holding, update its own state (`p->state`), and then call `sched`. You can see this sequence in `yield` (2629), `sleep` and `kexit`. `sched` calls `swtch` to save the current context in `p->context` and switch to the scheduler context in `cpu->context`. `swtch` returns on the scheduler’s stack as though `scheduler`’s `swtch` had returned (2582). 
 
-想要放弃 CPU 的进程必须先获取到自己的进程锁 `p->lock`，释放其持有的任何其他锁，更新自身状态（`p->state`），然后调用 `sched`。我们可以在 `yield` (2629)、`sleep` 和 `exit` 中看到上述类似的程序执行步骤。`sched` 调用 `swtch` 将当前上下文保存在 `p->context` 中，并根据 `cpu->context` 中的值切换到 scheduler 的上下文。`swtch` 在 scheduler 的栈上返回，具体返回地址在 `scheduler` 函数中 (2582)。
+想要放弃 CPU 的进程必须先获取到自己的进程锁 `p->lock`，释放其持有的任何其他锁，更新自身状态（`p->state`），然后调用 `sched`。我们可以在 `yield` (2629)、`sleep` 和 `exit` 中看到上述类似的程序执行步骤。`sched` 调用 `swtch` 将当前上下文保存在 `p->context` 中，并根据 `cpu->context` 中的值切换到 scheduler 线程的上下文。`swtch` 在 scheduler 线程的栈上返回，具体返回地址在 `scheduler` 函数中 (2582)，看上去就好像 `scheduler` 中的 `swtch` 函数返回了一样。
 
 ![](./figures/figure-8.2.png)
 
