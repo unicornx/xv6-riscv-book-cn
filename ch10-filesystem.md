@@ -11,7 +11,7 @@
 > - Different processes may operate on the file system at the same time, so the file-system code must coordinate to maintain invariants.
 > - Accessing a disk is orders of magnitude slower than accessing memory, so the file system must maintain an in-memory cache of popular blocks.
 
-xv6 的文件系统支持 “类 Unix（Unix-like）” 的 “文件（file）”、“目录（directory）” 和 “路径名（pathname）” 等概念（参考第 1 章），并将其数据存储在 virtio 磁盘上实现 “持久化（persistence）”。文件系统解决了以下几个难题：
+xv6 的文件系统支持 “类似 Unix（Unix-like）” 的 “文件（file）”、“目录（directory）” 和 “路径名（pathname）” 等概念（参考第 1 章），并将其数据存储在 virtio 磁盘（译者注：virtio 磁盘是 QEMU 模拟的一种虚拟化磁盘）上实现 “持久化（persistence）”。文件系统解决了以下几个难题：
 
 - 文件系统需要将存储在磁盘上的数据以目录和文件的形式组织成树状结构，每个目录和文件都有自己的名字标识，同时这个树状的数据结构本身也需要存储在磁盘上。文件系统还需要知道磁盘上哪些 “块（block）” 保存有文件的内容（通过记录这些块的 “标识符（identity）”），以及记录磁盘上哪些区域是空闲的（没有存放数据）。
 - 文件系统必须支持 *崩溃恢复（crash recovery）*。也就是说，如果发生崩溃（例如，电源故障），文件系统必须在重新启动后仍能正常工作。而实现这个功能的挑战在于突然发生的崩溃可能会打断当前对磁盘的更新操作序列，这会导致磁盘上的实际数据状态和记录数据状态的数据结构内容之间不一致（例如，一个块被某个文件使用但同时却被标记为空闲）。
@@ -28,17 +28,17 @@ xv6 的文件系统支持 “类 Unix（Unix-like）” 的 “文件（file）�
 
 > The xv6 file system implementation is organized in seven layers, shown in Figure 10.1. The disk layer reads and writes blocks on an virtio hard drive. The buffer cache layer caches disk blocks and synchronizes access to them, making sure that only one kernel process at a time can modify the data stored in any particular block. The logging layer allows higher layers to wrap updates to several blocks in a *transaction*, and ensures that the blocks are updated atomically in the face of crashes (i.e., all of them are updated or none). The inode layer provides individual files, each represented as an inode with a unique i-number and some blocks holding the file’s data. The directory layer implements each directory as a special kind of inode whose content is a sequence of directory entries, each of which contains a file’s name and i-number. The pathname layer provides hierarchical path names like `/usr/rtm/xv6/fs.c`, and resolves them with recursive lookup. The file descriptor layer abstracts many Unix resources (e.g., pipes, devices, files, etc.) using the file system interface, simplifying the lives of application programmers.
 
-（译者注：原文称呼磁盘上的块为 block，称呼对应的内存中的副本为 buffer。本译文中将直接使用以示区分并不再翻译为中文。）
+（译者注：原文称呼磁盘上的块为 block，称呼对应的内存中的副本为 buffer。为方便区分，本译文中将对这两个概念直接使用英文原文，不再翻译为中文。）
 
-xv6 的文件系统实现分为七层，如图 10.1 所示。“磁盘（Disk）” 层读取和写入 virtio 硬盘上的块。“缓存（Buffer cache）” 层缓存 block 并同步对它们的访问，确保每次只有一个内核进程可以修改存储在某个特定 block 中的数据。“日志（Logging）” 层允许上层将对涉及多个 block 的更新操作封装为 *事务（transaction）*，并在遇到崩溃时能够确保更新操作的 “原子性（atomic）”（即，对所有的这些块，要么都更新，要么都不更新）。“索引结点（Inode）” 层向上提供单个文件的概念，每个文件表示为一个 “索引节点（inode）”，每个 inode 具有唯一的 “索引号（i-number）” 并记录了哪些 block 保存了该文件的内容。“目录（Directory）” 层将每个目录实现为一种特殊的 inode，其内容是一组 “目录项（directory entry）”，每个目录项包含一个文件名和它的索引号。“路径名（Pathname）” 层提供了分层的路径名，例如 `/usr/rtm/xv6/fs.c`，并通过递归查找来解析它们。“文件描述符 (File Descriptor)” 层提供文件系统接口抽象了众多 Unix 资源（例如，管道、设备、文件等），简化了面向应用的编程人员的工作。
+xv6 的文件系统实现分为七层，如图 10.1 所示。“磁盘（Disk）” 层读取和写入 virtio 硬盘上的块。“缓存（Buffer cache）” 层缓存 block 并同步对它们的访问，确保每次只有一个内核进程可以修改存储在某个特定 block 中的数据。“日志（Logging）” 层允许上层将对涉及多个 block 的更新操作封装为 *事务（transaction）*，并在遇到崩溃时能够确保更新操作的 “原子性（atomic）”（即，对所有的这些块，要么都更新，要么都不更新）。“索引结点（Inode）” 层向上层提供单个文件的概念，每个文件表示为一个 “索引节点（inode）”，每个 inode 具有唯一的 “索引号（i-number）” 并记录了哪些 block 保存了该文件的内容。“目录（Directory）” 层将每个目录实现为一种特殊的 inode，其内容是一组 “目录项（directory entry）”，每个目录项包含一个文件名和它的索引号。“路径名（Pathname）” 层提供了分层的路径名，例如 `/usr/rtm/xv6/fs.c`，并通过递归查找来解析它们。“文件描述符 (File Descriptor)” 层提供文件系统接口抽象了众多 Unix 资源（例如，管道、设备、文件等），简化了面向应用的编程人员的工作。
 
 > Disk hardware traditionally presents the data on the disk as a numbered sequence of 512-byte blocks (also called *sectors*): sector 0 is the first 512 bytes, sector 1 is the next, and so on. The block size that an operating system uses for its file system maybe different than the sector size that a disk uses, but typically the block size is a multiple of the sector size. Xv6 holds copies of blocks that it has read into memory in objects of type `struct buf` (3900). The data stored in this structure is sometimes out of sync with the disk: it might have not yet been read in from disk (the disk is working on it but hasn’t returned the sector’s content yet), or it might have been updated by software but not yet written to the disk.
 
-传统上磁盘硬件将磁盘空间划分为 512 字节大小的块（也称为 *扇区（sector）*），并编号排序：扇区 0 是第一个 512 个字节，扇区 1 是下一个，依此类推。操作系统里的文件系统所定义的的 “块（block）” 的大小可能与磁盘定义的扇区大小不同，但通常块的大小是扇区大小的整数倍。xv6 定义了结构体类型 `struct buf`（3900）来表示读入内存的 block 的副本。内存中此结构体中的数据可能会与磁盘上的内容不同步：譬如数据尚未从磁盘读入（磁盘正在处理但尚未返回扇区的内容），或者软件更新了内存中的数据但还没来得及写回磁盘。
+传统上磁盘硬件将磁盘空间划分为 512 字节大小的块（也称为 *扇区（sector）*），并编号排序：扇区 0 是第一组 512 个字节，扇区 1 是下一组，依此类推。操作系统里的文件系统所定义的的 “块（block）” 的大小可能与磁盘定义的扇区大小不同，但通常块的大小是扇区大小的整数倍。xv6 定义了结构体类型 `struct buf`（3900）来表示读入内存的 block 的副本。内存中此结构体中的数据可能会与磁盘上的内容不同步：譬如数据尚未从磁盘读入（磁盘正在处理但尚未返回扇区的内容），或者软件更新了内存中的数据但还没来得及写回磁盘。
 
 > The file system must have a plan for where it stores inodes and content blocks on the disk. To do so, xv6 divides the disk into several sections, as Figure 10.2 shows. The file system does not use block 0 (it holds the boot sector). Block 1 is called the *superblock*; it contains metadata about the file system (the file system size in blocks, the number of data blocks, the number of inodes, and the number of blocks in the log). Blocks starting at 2 hold the log. After the log are the inodes, with multiple inodes per block. After those come bitmap blocks tracking which data blocks are in use. The remaining blocks are data blocks; each is either marked free in the bitmap block, or holds content for a file or directory. The superblock is filled in by a separate program, called `mkfs`, which builds an initial file system.
 
-文件系统必须对在磁盘上如何存储 inode 和数据内容有所规划。为此，xv6 将磁盘划分为几个部分，如图 10.2 所示。文件系统不使用编号为 0 的块（它用于保存 “引导扇区（boot sector）”）。编号为 1 的块称为 *超级块（superblock）*：它包含有关文件系统的 “元数据（metadata）”（譬如文件系统的大小（以 block 为单位）、数据 block 的个数、inode 的个数以及 “日志（log）” 所占用的 block 的个数）。从编号为 2 的 block 开始保存 log。log 存放区的后面是存放 inode 的区域，由多个 block 组成，每个 block 中记录有多个 inode。再往后的 block 用于存放 “位图（bitmap）”，bitmap 用于记录哪些存放数据的 block 正在被使用。其余的 block 存放数据，每个数据 block 要么在 bitmap block 中标记为空闲，要么保存着文件或目录的内容。superblock 中的内容由一个名为 `mkfs` 的程序进行填充，该程序构建了（磁盘上的）初始的文件系统（译者注：`mkfs` 所作的工作即我们常说的磁盘格式化）。
+文件系统必须对在磁盘上如何存储 inode 和数据内容有所规划。为此，xv6 将磁盘划分为几个部分，如图 10.2 所示。文件系统不使用编号为 0 的 block（它用于保存 “引导扇区（boot sector）”）。编号为 1 的 block 称为 *超级块（superblock）*：它包含有关文件系统的 “元数据（metadata）”（譬如文件系统的大小（以 block 为单位）、数据 block 的个数、inode 的个数以及 “日志（log）” 所占用的 block 的个数）。从编号为 2 的 block 开始保存 log。log 存放区的后面是存放 inode 的区域，由多个 block 组成，每个 block 中记录有多个 inode。再往后的 block 用于存放 “位图（bitmap）”，bitmap 用于记录哪些存放数据的 block 正在被使用。其余的 block 存放数据，每个数据 block 要么在 bitmap block 中标记为空闲，要么保存着文件或目录的内容。superblock 中的内容由一个名为 `mkfs` 的程序进行填充，该程序构建了（磁盘上的）初始的文件系统（译者注：`mkfs` 所作的工作类似于我们常说的磁盘格式化）。
 
 > The rest of this chapter discusses each layer, starting with the buffer cache. Look out for situations where well-chosen abstractions at lower layers ease the design of higher ones.
 
@@ -64,7 +64,7 @@ Buffer cache 的主要接口包括 `bread` 和 `bwrite`；`bread` 会返回一�
 
 > The buffer cache is a doubly-linked list of buffers. The function `binit`, called by `main` (1176), initializes the list with the `NBUF` buffers in the static array `buf` (4792-2301). All other access to the buffer cache refer to the linked list via `bcache.head`, not the `buf` array.
 
-buffer cache 是一个大小为 `NBUF` 的静态数组 `buf`（译者注：即 `bcache.buf`），每个成员是一个 `struct buf` 的结构体，同时这些结构体成员又通过一个双向链表串联起来。`main` 通过调用函数 `binit` (1176) 初始化该链表 (4792-2301) 。所有其他对 buffer cache 的访问都通过 `bcache.head` 引用该链表，而不是直接访问 `buf` 数组。
+buffer cache 被实现为一个大小为 `NBUF` 的静态数组 `buf`（译者注：即 `bcache.buf`），每个成员是一个 `struct buf` 的结构体，同时这些结构体成员又通过一个双向链表串联起来。`main` 通过调用函数 `binit` (1176) 初始化该链表 (4792-2301) 。所有其他对 buffer cache 的访问都通过 `bcache.head` 引用该链表，而不是直接访问 `buf` 数组。
 
 > A buffer has two state fields associated with it. The field `valid` indicates that the buffer contains a copy of the block. The field `disk` indicates that the buffer content has been handed to the disk, which may change the buffer (e.g., write data from the disk into `data`).
 
@@ -84,7 +84,7 @@ buffer cache 是一个大小为 `NBUF` 的静态数组 `buf`（译者注：即 `
 
 > It is important that there is at most one cached buffer per disk sector, to ensure that readers see writes, and because the file system uses locks on buffers for synchronization. `bget` ensures this invariant by holding the `bache.lock` `bcache.lock` continuously from the first loop’s check of whether the block is cached through the second loop’s declaration that the block is now cached (by setting `dev`, `blockno`, and `refcnt`). This causes the check for a block’s presence and (if not present) the designation of a buffer to hold the block to be atomic. 
 
-每个磁盘扇区（即 block）最多只能对应有一个 buffer，这很重要，只有这样才能确保读取和写入内容的一致性，当然这也是因为文件系统使用了 buffer 上的锁实现了同步。`bget` 中有两个 `for` 循环，第一个循环检查 block 是否已缓存，（如果检查失败）第二个循环选择一个新的 buffer 并标记 block 已缓存（通过设置 `dev`、`blockno` 和 `refcnt`），为了保证这两个循环操作的原子性（即 invariant），进入 `bget` 后首先要做的就是尝试持有 `bcache.lock`。
+每个磁盘扇区（译者注：即 block）最多只能对应有一个 buffer，这很重要，只有这样才能确保读取和写入内容的一致性，当然这也是因为文件系统使用了 buffer 上的锁实现了同步。`bget` 中有两个 `for` 循环，第一个循环检查 block 是否已缓存，（如果检查失败）第二个循环选择一个新的 buffer 并标记 block 已缓存（通过设置 `dev`、`blockno` 和 `refcnt`），为了保证这两个循环操作的原子性（即 invariant），进入 `bget` 后首先要做的就是尝试持有 `bcache.lock`。
 
 > It is safe for `bget` to acquire the buffer’s sleep-lock outside of the `bcache.lock` critical section, since the non-zero `b->refcnt` prevents the buffer from being re-used for a different disk block. The sleep-lock protects reads and writes of the block’s buffered content, while the `bcache.lock` protects information about which blocks are cached.
 
@@ -92,7 +92,7 @@ buffer cache 是一个大小为 `NBUF` 的静态数组 `buf`（译者注：即 `
 
 > If all the buffers are busy, then too many processes are simultaneously executing file system calls; `bget` panics. A more graceful response might be to sleep until a buffer became free, though there would then be a possibility of deadlock.
 
-如果所有 buffer 都被使用了，则说明此时有太多进程在执行文件系统相关的调用；目前 `bget` 对这种情况的处理是直接让系统崩溃（panic）。当然更优雅的处理方式是将进程休眠直到出现空闲的 buffer，但这么做可能会出现死锁。
+如果所有 buffer 都被使用了，则说明此时有太多进程在执行文件系统相关的调用；目前 `bget` 对这种情况的处理是直接让系统 “崩溃（panic）”。当然更优雅的处理方式是将进程休眠直到出现空闲的 buffer，但这么做可能会出现死锁。
 
 > Once `bread` has read the disk (if needed) and returned the buffer to its caller, the caller has exclusive use of the buffer and can read or write the data bytes. If the caller does modify the buffer, it must call `bwrite` to write the changed data to disk before releasing the buffer. `bwrite` (4366) calls `virtio_disk_rw` to talk to the disk hardware.
 
@@ -128,7 +128,7 @@ xv6 通过实现一套简化版本的日志机制解决了文件系统操作期�
 
 > The log resides at a known fixed location, specified in the superblock. It consists of a header block followed by a sequence of updated block copies (“logged blocks”). The header block contains an array of sector numbers, one for each of the logged blocks, and the count of log blocks. The count in the header block on disk is either zero, indicating that there is no transaction in the log, or nonzero, indicating that the log contains a complete committed transaction with the indicated number of logged blocks. Xv6 writes the header block when a transaction commits, but not before, and sets the count to zero after copying the logged blocks to the file system. Thus a crash midway through a transaction will result in a count of zero in the log’s header block; a crash after a commit will result in a non-zero count.
 
-（磁盘上的）log 位于 superblock 中指定的一个固定位置。它由一个 “头块（header block）” 和紧跟着的一组用于更新的 block 的副本（称之为 “logged block”）组成。header block 包含一个存放扇区号（译者注：这里扇区即 block，下不赘述）的数组（每个扇区号对应一个 logged block 需要更新的 block，译者注：即 `struct logheader` 的 `block` 成员）以及需要参与更新的 logged block 的个数数值（译者注：即 `struct logheader` 的 `n` 成员）。磁盘上的 header block 中的计数 n 如果值为零，表示 log 中没有事务需要更新；如果其值非零，则表示 log 包含一个完整的已提交的事务，其具体值为事务中需要更新的 logged block 的数量。只有在一个事务被实际 “提交（commit）” 时 xv6 才会将内存中的 header block（即全局变量 `log.lh` 写入磁盘中的 header block，在此之前并不会写入，此外，提交过程会在将 logged blocks 全部复制到文件系统实际对应的 block 后再将磁盘中的 header block 中的计数值恢复为零。因此，如果是事务中途（即提交前）发生崩溃，则磁盘中 log 的 header block 中的计数值为仍然为零（译者注：对应一个无效的事务，无需恢复）；如果是提交后发生崩溃将导致计数是一个非零值（译者注：对这种情况，记录的 logged block 内容将在系统重启后被恢复）。
+（磁盘上的）log 位于 superblock 中指定的一个固定位置。它由一个 “头块（header block）” 和紧跟着的一组用于更新的 block 的副本（称之为 “logged block”）组成。header block 包含一个记录扇区号（译者注：这里扇区即 block，下不赘述）的数组（每个扇区号对应一个 logged block 需要更新的 block，译者注：即 `struct logheader` 的 `block` 成员）以及一个记录了需要参与更新的 logged block 的个数的整数（译者注：即 `struct logheader` 的 `n` 成员）。磁盘上的 header block 中的计数 `n` 如果值为零，表示 log 中没有事务需要更新；如果其值非零，则表示 log 包含一个完整的已提交的事务，其具体值为事务中需要更新的 logged block 的数量。只有在一个事务被实际 “提交（commit）” 时 xv6 才会将内存中的 header block 副本（译者注：即全局变量 `log.lh`）写入磁盘中的 header block，在此之前并不会写入，此外，提交过程会在将 logged blocks 全部复制到文件系统实际对应的 block 后再将磁盘中的 header block 中的计数值恢复为零。因此，如果是事务中途（即提交前）发生崩溃，则磁盘中 log 的 header block 中的计数值为仍然为零（译者注：这表示对应一个无效的事务，无需恢复）；如果是提交后发生崩溃将导致计数是一个非零值（译者注：对这种情况，记录的 logged block 内容将在系统重启后被恢复）。
 
 > Each system call’s code indicates the start and end of the sequence of writes that must be atomic with respect to crashes. To allow concurrent execution of file-system operations by different processes, the logging system can accumulate the writes of multiple system calls into one transaction. Thus a single commit may involve the writes of multiple complete system calls. To avoid splitting a system call across transactions, the logging system only commits when no file-system system calls are underway.
 
@@ -160,7 +160,7 @@ end_op();
 
 > `begin_op` (4702) waits until the logging system is not currently committing, and until there is enough unreserved log space to hold the writes from this call. `log.outstanding` counts the number of system calls that have reserved log space; the total reserved space is `log.outstanding` times `MAXOPBLOCKS`. Incrementing `log.outstanding` both reserves space and prevents a commit from occurring during this system call. The code conservatively assumes that each system call might write up to `MAXOPBLOCKS` distinct blocks.
 
-`begin_op` (4702) 只有当如下条件都满足时才会继续，否则会将调用它的任务进入睡眠并等待，条件之一是日志系统当前不处于提交过程中，还有一个前提条件就是有足够的未被占用的 log 空间来保存此调用的写入。`log.outstanding` 记录了当前有多少个系统调用申请使用 log 空间；预留的 block 的个数为 `log.outstanding` 乘以 `MAXOPBLOCKS`。对 `log.outstanding` 加 1 的操作不仅起到预留空间的作用，也防止在此系统调用期间发生提交（译者注：参考 `end_op` 的代码，只有当 `log.outstanding` 为 0 时才会允许提交）。代码保守地假设每次系统调用最多可以写入 `MAXOPBLOCKS` 个不同的 block。
+`begin_op` (4702) 只有当如下条件都满足时才会继续，否则会将调用它的任务进入睡眠并等待：条件之一是日志系统当前不处于提交过程中，还有一个前提条件就是有足够的未被占用的 log 空间来保存此调用的写入。`log.outstanding` 记录了当前有多少个系统调用申请使用 log 空间；预留的 block 的个数为 `log.outstanding` 乘以 `MAXOPBLOCKS`。对 `log.outstanding` 加 1 的操作不仅起到预留空间的作用，也防止在此系统调用期间发生提交（译者注：参考 `end_op` 的代码，只有当 `log.outstanding` 为 0 时才会允许提交）。代码保守地假设每次系统调用最多可以写入 `MAXOPBLOCKS` 个不同的 block。
 
 > `log_write` (4790) acts as a proxy for `bwrite`. It records the block’s sector number in memory, reserving it a slot in the log on disk, and pins the buffer in the block cache to prevent the block cache from evicting it. The block must stay in the cache until committed: until then, the cached copy is the only record of the modification; it cannot be written to its place on disk until after commit; and other reads in the same transaction must see the modifications. `log_write` notices when a block is written multiple times during a single transaction, and allocates that block the same slot in the log. This optimization is often called *absorption*. It is common that, for example, the disk block containing inodes of several files is written several times within a transaction. By absorbing several disk writes into one, the file system can save log space and can achieve better performance because only one copy of the disk block must be written to disk.
 
@@ -248,11 +248,11 @@ inode 表（即 `itable`）仅存储内核代码或数据结构中 C 指针指�
 
 > To allocate a new inode (for example, when creating a file), xv6 calls `ialloc` (5059). `ialloc` is similar to `balloc`: it loops over the inode structures on the disk, one block at a time, looking for one that is marked free. When it finds one, it claims it by writing the new `type` to the disk and then returns an entry from the inode table with the tail call to `iget` (5073). The correct operation of `ialloc` depends on the fact that only one process at a time can be holding a reference to `bp`: `ialloc` can be sure that some other process does not simultaneously see that the inode is available and try to claim it.
 
-为了分配新的 inode（例如，创建文件时），xv6 会调用 `ialloc` (5059)。`ialloc` 类似于 `balloc`，该函数会在磁盘上存放 inode 的 block 中进行遍历，寻找标记为空闲的项。找到后，它会更新其 `type` 字段为非零值（表示占用），最后以尾调用的方式通过 `iget` (5073) 返回 inode 表中的项。`ialloc` 正确工作的前提取决于同一时间只有一个进程可以持有对 `bp` 的引用：`ialloc` 可以确保其他进程不会同时发现该 inode 可用并尝试占用它。
+为了分配新的 “索引节点（inode）”（例如，创建文件时），xv6 会调用 `ialloc` (5059)。`ialloc` 类似于 `balloc`，该函数会在磁盘上存放 inode 的 block 中进行遍历，寻找标记为空闲的项。找到后，它会更新其 `type` 字段为非零值（表示占用），最后以尾调用的方式通过 `iget` (5073) 返回 inode 表中的项。`ialloc` 正确工作的前提取决于同一时间只有一个进程可以持有对 `bp` 的引用：`ialloc` 可以确保其他进程不会同时发现该 inode 可用并尝试占用它。
 
 > `iget` (5107) looks through the inode table for an active entry (`ip->ref > 0`) with the desired device and inode number. If it finds one, it returns a new reference to that inode (5116-5120). As `iget` scans, it records the position of the first empty slot (5121-5122), which it uses if it needs to allocate a table entry.
 
-`iget` (5107) 在 inode 表中查找有效的 (`ip->ref > 0`) 的项，同时将该项的设备号与 inode 编号和给定的入参值进行匹配。如果找到，它会递增该 inode 的 `ref` 值并返回其指针（5116-5120）。在扫描过程中 `iget` 会记录第一个可用项的位置 (5121-5122) ，以便需要在 inode 表中分配新的项时直接定位到第一个可用项的位置（避免再扫描一遍）。
+`iget` (5107) 在 “索引节点表（inode table）” 中查找有效的 (`ip->ref > 0`) 的项，同时将该项的设备号与 inode 编号和给定的入参值进行匹配。如果找到，它会递增该 inode 的 `ref` 值并返回其指针（5116-5120）。在扫描过程中 `iget` 会记录第一个可用项的位置 (5121-5122) ，以便需要在索引节点表中分配新的项时直接定位到第一个可用项的位置（避免再扫描一遍）。
 
 > Code must lock the inode using `ilock` before reading or writing its metadata or content. `ilock` (5153) uses a sleep-lock for this purpose. Once `ilock` has exclusive access to the inode, it reads the inode from disk (more likely, the buffer cache) if needed. The function `iunlock` (5181) releases the sleep-lock, which may cause any processes sleeping to be woken up.
 
@@ -260,7 +260,7 @@ inode 表（即 `itable`）仅存储内核代码或数据结构中 C 指针指�
 
 > `iput` (5208) releases a C pointer to an inode by decrementing the reference count (5231). If this is the last reference, the inode’s slot in the inode table is now free and can be re-used for a different inode.
 
-`iput` (5208) 通过减少引用计数 (5231) 释放指向某个 inode 的 C 指针。如果这是最后一处引用，则此时我们可以释放该 inode 在 inode 表中的槽位，并将其重新用于其他 inode。
+`iput` (5208) 通过减少引用计数 (5231) 释放指向某个 inode 的 C 指针。如果这是最后一处引用，则此时我们可以释放该 inode 在索引节点表中的槽位，并将其重新用于其他 inode。
 
 > If `iput` sees that there are no C pointer references to an inode and that the inode has no links to it (occurs in no directory), then the inode and its data blocks must be freed. `iput` calls `itrunc` to truncate the file to zero bytes, freeing the data blocks; sets the inode type to 0 (unallocated); and writes the inode to disk (5213).
 
@@ -276,11 +276,11 @@ inode 表（即 `itable`）仅存储内核代码或数据结构中 C 指针指�
 
 > There is a challenging interaction between `iput()` and crashes. `iput()` doesn’t truncate a file immediately when the link count for the file drops to zero, because some process might still hold a reference to the inode in memory: a process might still be reading and writing to the file, because it successfully opened it. But, if a crash happens before the last process closes the file descriptor for the file, then the file will be marked allocated on disk but no directory entry will point to it.
 
-针对系统崩溃场景，`iput()` 的处理逻辑中存在一个棘手的问题。当文件的链接计数降至零时，`iput()` 不会立即清除文件的内容（truncate），因为某些进程可能仍在内存中持有对 inode 的引用：进程可能仍在准备读取和写入该文件，因为它已成功打开该文件。但是，如果崩溃发生在最后一个进程关闭文件的文件描述符之前，那么该文件将在磁盘上被标记为已分配，但没有 directory entry 指向它。
+针对系统崩溃场景，`iput()` 的处理逻辑中存在一个棘手的问题。当文件的链接计数降至零时，`iput()` 不会立即清除文件的内容（truncate），因为某些进程可能仍在内存中持有对 inode 的引用：进程可能仍在准备读取和写入该文件，因为它已成功打开该文件。但是，如果崩溃发生在最后一个进程关闭文件的文件描述符之前，那么该文件将在磁盘上被标记为已分配，但没有 “目录项（directory entry）” 指向它(译者注：有关目录项的概念见下文第 10.11 节介绍)。
 
 > File systems handle this case in one of two ways. The simple solution is that on recovery, after reboot, the file system scans the whole file system for files that are marked allocated, but have no directory entry pointing to them. If any such file exists, then it can free those files.
 
-文件系统有两种方法来处理这种情况。一种简单的解决方案是，在系统恢复时，也就是重启后，文件系统会扫描整个文件系统，查找那些标记为 “已分配” 但没有 directory entry 指向的文件。如果存在这样的文件，就可以释放它们。
+文件系统有两种方法来处理这种情况。一种简单的解决方案是，在系统恢复时，也就是重启后，文件系统会扫描整个文件系统，查找那些标记为 “已分配” 但没有 “目录项（directory entry）” 指向的文件。如果存在这样的文件，就可以释放它们。
 
 > The second solution doesn’t require scanning the file system. In this solution, the file system records on disk (e.g., in the super block) the inode inumber of a file whose link count drops to zero but whose reference count isn’t zero. If the file system removes the file when its reference count reaches 0, then it updates the on-disk list by removing that inode from the list. On recovery, the file system frees any file in the list.
 
@@ -296,7 +296,7 @@ inode 表（即 `itable`）仅存储内核代码或数据结构中 C 指针指�
 
 > The on-disk inode structure, `struct dinode`, contains a size and an array of block numbers (see Figure 10.3). The inode data is found in the blocks listed in the `dinode`’s `addrs` array. The first `NDIRECT` blocks of data are listed in the first `NDIRECT` entries in the array; these blocks are called *direct* blocks. The next `NINDIRECT` blocks of data are listed not in the inode but in a data block called the *indirect block*. The last entry in the `addrs` array gives the address of the indirect block. Thus the first 12 kB (`NDIRECT x BSIZE`) bytes of a file can be loaded from blocks listed in the inode, while the next `256` kB (`NINDIRECT x BSIZE`) bytes can only be loaded after consulting the indirect block. This is a good on-disk representation but a complex one for clients. The function `bmap` manages the representation so that higher-level routines, such as `readi` and `writei`, which we will see shortly, do not need to manage this complexity. `bmap` returns the disk block number of the `bn`’th data block for the inode `ip`. If `ip` does not have such a block yet, `bmap` allocates one.
 
-磁盘上的 inode 结构体 `struct dinode` 包含一个 `size` 字段和一个存放 block 编号的数组（参见图 10.3）。inode 的数据存放于 `dinode` 的 `addrs` 数组中列出的 block 中。数组的前 `NDIRECT`（译者注：常量值 12，定义在 kernel/fs.h:27）项对应 `NDIRECT` 个数据 block，这些 block 称为 *直接块（direct block）*。还有 `NINDIRECT`（译者注：常量值 256，定义在 kernel/fs.h:28）个数据 block 的编号没有直接存放在 `addrs` 数组中，而是存放在一个称为 *间接块（indirect block）* 的数据 block 中。`addrs` 数组中的最后一项给出了 indirect block 的编号。因此，文件的前 12 kB（`NDIRECT x BSIZE`）字节可以从 inode 中列出的 block 加载，而接下来的 `256` kB（`NINDIRECT x BSIZE`）字节只能在查阅 indirect block 后才能加载。这是一种优化设计，但对于使用者来说比较复杂。函数 `bmap` 封装了对 inode 中数据块的管理（译者注：即对 `inode` 的 `addrs` 数组的访问），这样更高级别的函数（例如我们稍后会看到的 `readi` 和 `writei`）就无需考虑这种复杂性了。`bmap` 返回 `ip` 的第 `bn` 个数据块的 block 编号。如果 `ip` 还没有这样的 block，`bmap` 就会分配一个。
+磁盘上的 inode 结构体 `struct dinode` 包含一个 `size` 字段和一个存放 block 编号的数组（参见图 10.3）。inode 的数据存放于 `dinode` 的 `addrs` 数组中列出的 block 中。数组的前 `NDIRECT` 项对应 `NDIRECT`（译者注：常量值 12）个数据 block，这些 block 称为 *直接块（direct block）*。还有 `NINDIRECT`（译者注：常量值 256）个数据 block 的编号没有直接存放在 `addrs` 数组中，而是存放在一个称为 *间接块（indirect block）* 的数据 block 中。`addrs` 数组中的最后一项给出了 indirect block 的编号。因此，文件的前 12 kB（`NDIRECT x BSIZE`）字节可以从 inode 中列出的 block 加载，而接下来的 `256` kB（`NINDIRECT x BSIZE`）字节只能在查阅 indirect block 后才能加载。这是一种优化设计，但对于使用者来说比较复杂。函数 `bmap` 封装了对 inode 中数据块的管理（译者注：即对 `inode` 的 `addrs` 数组的访问），这样更高级别的函数（例如我们稍后会看到的 `readi` 和 `writei`）就无需考虑这种复杂性了。`bmap` 返回 `ip` 的第 `bn` 个数据块的 block 编号。如果 `ip` 还没有这样的 block，`bmap` 就会分配一个。
 
 > The function `bmap` (5283) begins by picking off the easy case: the first `NDIRECT` blocks are listed in the inode itself (5288-5296). The next `NINDIRECT` blocks are listed in the indirect block at `ip->addrs[NDIRECT]`. `bmap` reads the indirect block (5308) and then reads a block number from the right position within the block (5309). If the block number exceeds `NDIRECT+NINDIRECT`, `bmap` panics; `writei` contains the check that prevents this from happening (5415).
 
@@ -322,15 +322,15 @@ inode 表（即 `itable`）仅存储内核代码或数据结构中 C 指针指�
 
 > A directory is implemented internally much like a file. Its inode has type `T_DIR` and its data is a sequence of directory entries. Each entry is a `struct dirent` (4165), which contains a name and an inode number. The name is at most `DIRSIZ` (14) characters; if shorter, it is terminated by a NULL (0) byte. Directory entries with inode number zero are free.
 
-“目录（directory）” 的内部实现与文件非常相似（译者注：即每一个 directory 也对应一个 inode）。其 inode 的 `type` 为 `T_DIR`，其数据是一组 “目录项（directory entry）”（译者注：下文也会简称为 entry）。每一个 directory entry 对应一个结构体 `struct dirent`（4165），该结构体包含一个 `name` 和一个 inode 编号（`inum`）。`name` 最多包含 `DIRSIZ`（14）个字符；如果少于 14 个字符，则以 NULL（0）字节结尾。如果 inode 编号为 0 说明该 directory entry 未被使用。
+“目录（directory）” 的内部实现与文件非常相似（译者注：即每一个目录也对应一个 inode）。其 inode 的 `type` 为 `T_DIR`，其数据是一组 “目录项（directory entry）”。每一个目录项对应一个结构体 `struct dirent`（4165），该结构体包含一个 `name` 和一个 inode 编号（`inum`）。`name` 最多包含 `DIRSIZ`（14）个字符；如果少于 14 个字符，则以 NULL（0）字节结尾。如果 inode 编号为 0 说明该目录项未被使用。
 
 > The function `dirlookup` (5453) searches a directory for an entry with the given name. If it finds one, it returns a pointer to the corresponding inode, unlocked, and sets `*poff` to the byte offset of the entry within the directory, in case the caller wishes to edit it. If `dirlookup` finds an entry with the right name, it updates `*poff` and returns an unlocked inode obtained via `iget`. `dirlookup` is the reason that `iget` returns unlocked inodes. The caller has locked `dp`, so if the lookup was for ., an alias for the current directory, attempting to lock the inode before returning would try to re-lock dp and deadlock. (There are more complicated deadlock scenarios involving multiple processes and .., an alias for the parent directory; . is not the only problem.) The caller can unlock `dp` and then lock `ip`, ensuring that it only holds one lock at a time.
 
-函数 `dirlookup`（5453）在 directory 中搜索具有给定名称的 entry。如果找到，它将返回该 entry 对应的 inode 的指针（此时还未锁定），并将出参 `*poff` 设置为该 entry 在 directory 中的字节偏移量，以便调用者对其进行编辑。如果 `dirlookup` 找到具有正确名称的 entry，它将给 `*poff` 赋值，并通过 `iget` 获取未锁定的 inode 的指针并返回该指针。之所以这里 `iget` 返回未锁定的 inode 的原因在于 `dirlookup` 的调用者已锁定 `dp`（即当前目录），因此如果查找的是 “.”（当前目录的别名），则在返回之前尝试锁定 inode 会导致重复锁定 dp 并导致死锁（“.” 不是唯一的问题，多进程并发情况下访问 “..”（父目录的别名）同样存在复杂的死锁风险。）。所以我们让 `dirlookup` 的调用者来负责解锁 `dp`，然后再锁定 `ip`，确保它一次只持有一个锁。
+函数 `dirlookup`（5453）在目录中搜索具有给定名称的目录项。如果找到，它将返回该目录项对应的 inode 的指针（此时还未锁定），并将出参 `*poff` 设置为该目录项在目录中的字节偏移量，以便调用者对其进行编辑。如果 `dirlookup` 找到具有正确名称的目录项，它将给 `*poff` 赋值，并通过 `iget` 获取未锁定的 inode 的指针并返回该指针。之所以这里 `iget` 返回未锁定的 inode 的原因在于 `dirlookup` 的调用者已锁定 `dp`（即当前目录），因此如果查找的是 “.”（当前目录的别名），则在返回之前尝试锁定 inode 会导致重复锁定 dp 并导致死锁（“.” 不是唯一的问题，多进程并发情况下访问 “..”（父目录的别名）同样存在复杂的死锁风险。）。所以我们让 `dirlookup` 的调用者来负责解锁 `dp`，然后再锁定 `ip`，确保它一次只持有一个锁。
 
 > The function `dirlink` (5481) writes a new directory entry with the given name and inode number into the directory `dp`. If the name already exists, `dirlink` returns an error (5487-5491). The main loop reads directory entries looking for an unallocated entry. When it finds one, it stops the loop early (5493-5498), with `off` set to the offset of the available entry. Otherwise, the loop ends with `off` set to `dp->size`. Either way, `dirlink` then adds a new entry to the directory by writing at offset `off` (5502-5503).
 
-函数 `dirlink`（5481）通过给定名字和 inode 编号将一个新的 directory entry 加入 `dp` 指向的 directory。如果该名字已存在，`dirlink` 将返回错误（5487-5491）。函数中的循环会检查 directory 中的 directory entry 数组，查找尚未分配的 entry。如果找到，则会提前停止循环（5493-5498），并将 `off` 设置为可用 entry 的偏移量。否则，循环结束后 `off` 会被设置为 `dp->size`。无论哪种情况，`dirlink` 都会在偏移量 `off` 处为 directory 中添加一个新的 entry（5502-5503）。
+函数 `dirlink`（5481）通过给定名字和 inode 编号将一个新的目录项加入 `dp` 指向的 directory。如果该名字已存在，`dirlink` 将返回错误（5487-5491）。函数中的循环会检查目录中的目录项数组，查找尚未分配的目录项。如果找到，则会提前停止循环（5493-5498），并将 `off` 设置为可用目录项的偏移量。否则，循环结束后 `off` 会被设置为 `dp->size`。无论哪种情况，`dirlink` 都会在偏移量 `off` 处为目录添加一个新的目录项（5502-5503）。
 
 ## 10.12 代码讲解：路径名称（Code: Path names）
 
@@ -410,7 +410,7 @@ Unix 接口的一个很酷的设计是，Unix 中的大多数资源都以文件�
 
 > The buffer cache in a real-world operating system is significantly more complex than xv6’s, but it serves the same two purposes: caching and synchronizing access to the disk. Xv6’s buffer cache, like V6’s, uses a simple least recently used (LRU) eviction policy; there are many more complex policies that can be implemented, each good for some workloads and not as good for others. A more efficient LRU cache would eliminate the linked list, instead using a hash table for lookups and a heap for LRU evictions. Modern buffer caches are typically integrated with the virtual memory system to support memory-mapped files.
 
-实际操作系统中的 buffer cache 比 xv6 的复杂得多，但它有两个相同的用途：缓存和同步磁盘访问。与 V6 类似，xv6 的 buffer cache 使用简单的 “最近最少使用 (LRU) ” 驱逐策略；此外，还可以实现许多更复杂的策略，每种策略都适用于某些特定的工作场景，而对其他工作场景则不那么适用。更高效的 LRU 缓存在查找时会使用哈希表而不是链表，并使用堆实现 LRU 驱逐。现代 buffer cache 通常与虚拟内存系统集成，以支持内存映射文件。
+实际操作系统中的 buffer cache 比 xv6 的复杂得多，但它有两个相同的用途：缓存和同步磁盘访问。与 V6 类似，xv6 的 buffer cache 使用简单的 “最近最少使用 (LRU) ” 驱逐策略；此外，还可以实现许多更复杂的策略，每种策略都适用于某些特定的工作场景，而对其他工作场景则不那么适用。更高效的 LRU 缓存在查找时会使用哈希表而不是链表，并使用堆实现 “LRU 驱逐（LRU evictions）”（译者注：操作系统中的 "LRU evictions" 指的是在使用 LRU (Least Recently Used) 页面置换算法时，当物理内存（页框）已满且有新页面需要载入时，操作系统选择并 “驱逐”（即移出内存）那个“最近最少被使用”的页面的过程。）。现代 buffer cache 通常与虚拟内存系统集成，以支持内存映射文件。
 
 > Xv6’s logging system is inefficient. A commit cannot occur concurrently with file-system system calls. The system logs entire blocks, even if only a few bytes in a block are changed. It performs synchronous log writes, a block at a time, each of which is likely to require an entire disk rotation time. Real logging systems address all of these problems.
 
@@ -426,7 +426,7 @@ xv6 的日志系统效率低下。提交操作无法与文件系统的系统调�
 
 > Xv6 is naive about disk failures: if a disk operation fails, xv6 panics. Whether this is reasonable depends on the hardware: if an operating systems sits atop special hardware that uses redundancy to mask disk failures, perhaps the operating system sees failures so infrequently that panicking is okay. On the other hand, operating systems using plain disks should expect failures and handle them more gracefully, so that the loss of a block in one file doesn’t affect the use of the rest of the file system.
 
-xv6 对磁盘故障的处理比较简单：如果磁盘操作失败，xv6 会直接 panic。这种情况是否合理取决于硬件条件：如果操作系统使用特殊的硬件，并利用冗余机制来屏蔽磁盘故障，那么操作系统遇到故障的频率可能很低，因此进入 panic 是可以接受的。另一方面，使用普通磁盘的操作系统应该能够预料到故障，并更优雅地处理它们，这样即使一个文件中的某个块丢失，也不会影响文件系统其他部分的使用。
+xv6 对磁盘故障的处理比较简单：如果磁盘操作失败，xv6 会直接崩溃。这种情况是否合理取决于硬件条件：如果操作系统使用特殊的硬件，并利用冗余机制来屏蔽磁盘故障，那么操作系统遇到故障的频率可能很低，因此进入崩溃是可以接受的。另一方面，使用普通磁盘的操作系统应该能够预料到故障，并更优雅地处理它们，这样即使一个文件中的某个块丢失，也不会影响文件系统其他部分的使用。
 
 > Xv6 requires that the file system fit on one disk device and not change in size. As large databases and multimedia files drive storage requirements ever higher, operating systems are developing ways to eliminate the “one disk per file system” bottleneck. The basic approach is to combine many disks into a single logical disk. Hardware solutions such as RAID are still the most popular, but the current trend is moving toward implementing as much of this logic in software as possible. These software implementations typically allow rich functionality like growing or shrinking the logical device by adding or removing disks on the fly. Of course, a storage layer that can grow or shrink on the fly requires a file system that can do the same: the fixed-size array of inode blocks used by xv6 would not work well in such environments. Separating disk management from the file system may be the cleanest design, but the complex interface between the two has led some systems, like Sun’s ZFS, to combine them.
 
