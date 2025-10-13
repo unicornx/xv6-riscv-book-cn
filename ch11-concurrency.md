@@ -2,7 +2,7 @@
 
 > Simultaneously obtaining good parallel performance, correctness despite concurrency, and understandable code is a big challenge in kernel design. Straightforward use of locks is the best path to correctness, but is not always possible. This chapter highlights examples in which xv6 is forced to use locks in an involved way, and examples where xv6 uses lock-like techniques but not locks.
 
-对于内核并发设计，要同时保证高超的性能、正确的逻辑以及良好的代码可读性是一个巨大的挑战。直接使用锁是实现正确性的最佳途径，但并非总是可行的。本章重点介绍了 xv6 中不得不以复杂的方式使用锁的案例，此外，也介绍了另外一些案例，在这些案例中 xv6 没有直接使用锁而是使用了其他类似锁的技术。
+对于内核并发设计，要同时保证优秀的性能、正确的逻辑以及良好的代码可读性是一个巨大的挑战。直接使用锁是实现正确性的最佳途径，但并非总是可行的。本章重点介绍了 xv6 中不得不以复杂的方式使用锁的案例，此外，也介绍了另外一些案例，在这些案例中 xv6 没有直接使用锁而是使用了其他类似锁的技术。
 
 ## 11.1 加锁的方式（Locking patterns）
 
@@ -12,7 +12,7 @@
 
 > Ordinarily the same function that acquires a lock will release it. But a more precise way to view things is that a lock is acquired at the start of a sequence that must appear atomic, and released when that sequence ends. If the sequence starts and ends in different functions, or different threads, or on different CPUs, then the lock acquire and release must do the same. The function of the lock is to force other uses to wait, not to pin a piece of data to a particular agent. One example is the `acquire` in `yield` (2629), which is released in the scheduler thread rather than in the acquiring process. Another example is the `acquiresleep` in `ilock` (5153); this code often sleeps while reading the disk; it may wake up on a different CPU, which means the lock may be acquired and released on different CPUs.
 
-通常，获取锁的函数也会负责释放锁。但更准确的理解是，锁在一个原子性的序列开始时被获取，并在该序列结束时被释放。如果这个序列分布在不同的函数、不同的线程或者在不同的 CPU 上开始和结束，则锁的获取和释放也必须遵循相同的逻辑。锁的作用是强制其他用户等待，而不是将数据绑定到特定的对象上（译者注：指前面提到的函数、线程或者 CPU）。一个例子是 `yield`（2629）中的 `acquire`，该锁在 scheduler 线程中才被释放，而不是在获取锁的函数中。另一个例子是 `ilock`（5153）中的 `acquiresleep`；这段代码在读取磁盘时经常处于休眠状态；执行这段代码的线程可能在不同的 CPU 上被唤醒，这意味着上锁和解锁可能发生在不同的 CPU 上。
+通常，获取锁的函数也会负责释放锁。但更准确的理解是，锁在一个原子性的操作序列开始时被获取，并在该序列结束时被释放。如果这个操作序列分布在不同的函数、不同的线程或者在不同的 CPU 上开始和结束，则锁的获取和释放也必须遵循相同的逻辑。锁的作用是强制其他用户等待，而不是将数据绑定到特定的对象上（译者注：指前面提到的函数、线程或者 CPU）。一个例子是 `yield`（2629）中的 `acquire`，该锁在 scheduler 线程中才被释放，而不是在获取锁的进程中。另一个例子是 `ilock`（5153）中的 `acquiresleep`；这段代码在读取磁盘时经常处于休眠状态；执行这段代码的线程可能在不同的 CPU 上被唤醒，这意味着上锁和解锁可能发生在不同的 CPU 上。
 
 > Freeing an object that is protected by a lock embedded in the object is a delicate business, since owning the lock is not enough to guarantee that freeing would be correct. The problem case arises when some other thread is waiting in `acquire` to use the object; freeing the object implicitly frees the embedded lock, which will cause the waiting thread to malfunction. One solution is to track how many references to the object exist, so that it is only freed when the last reference disappears. See `pipeclose` (6661) for an example; `pi->readopen` and `pi->writeopen` track whether the pipe has file descriptors referring to it.
 
@@ -34,7 +34,7 @@ xv6 在很多地方以 “类似锁（lock-like）” 的方式使用引用计�
 
 > The file system uses `struct inode` reference counts as a kind of shared lock that can be held by multiple processes, in order to avoid deadlocks that would occur if the code used ordinary locks. For example, the loop in `namex` (5555) locks the directory named by each pathname component in turn. However, `namex` must release each lock at the end of the loop, since if it held multiple locks it could deadlock with itself if the pathname included a dot (e.g., `a/./b`). It might also deadlock with a concurrent lookup involving the directory and ... As Chapter 10 explains, the solution is for the loop to carry the directory inode over to the next iteration with its reference count incremented, but not locked.
 
-文件系统使用 `struct inode` 结构体中的引用计数（即 `ref` 成员字段）作为一种可由多个进程持有的 “共享锁”，以避免代码使用普通锁时可能发生的死锁。例如，`namex`（5555）中的循环依次锁定每个路径名中的 component 所对应的目录。但是，`namex` 必须在循环结束时释放每个锁，因为如果它持有多个锁，当路径名包含一个 “.”（例如，`a/./b`）时，它可能会与自身发生死锁。它还可能与涉及目录的并发查找发生死锁 ...... 正如第 10 章所解释的，解决方案是让循环将目录的 inode 传递到下一次迭代，其引用计数递增，但不锁定。
+文件系统使用 `struct inode` 结构体中的引用计数（译者注：即 `ref` 成员字段）作为一种可由多个进程持有的 “共享锁”，以避免代码使用普通锁时可能发生的死锁。例如，`namex`（5555）中的循环依次锁定每个路径名中的 component 所对应的目录。但是，`namex` 必须在循环结束时释放每个锁，因为如果它持有多个锁，当路径名包含一个 “.”（例如，`a/./b`）时，它可能会与自身发生死锁。它还可能与涉及目录的并发查找发生死锁 ...... 正如第 10 章所解释的，解决方案是让循环将目录的 inode 传递到下一次迭代，其引用计数递增，但不锁定。
 
 > Some data items are protected by different mechanisms at different times, and may at times be protected from concurrent access implicitly by the structure of the xv6 code rather than by explicit locks. For example, when a physical page is free, it is protected by `kmem.lock` (2973). If the page is then allocated as a pipe (6622), it is protected by a different lock (the embedded `pi->lock`). If the page is re-allocated for a new process’s user memory, it is not protected by a lock at all. Instead, the fact that the allocator won’t give that page to any other process (until it is freed) protects it from concurrent access. The ownership of a new process’s memory is complex: first the parent allocates and manipulates it in `fork`, then the child uses it, and (after the child exits) the parent again owns the memory and passes it to `kfree`. There are two lessons here: a data object may be protected from concurrency in different ways at different points in its lifetime, and the protection may take the form of implicit structure rather than explicit locks.
 
@@ -42,7 +42,7 @@ xv6 在很多地方以 “类似锁（lock-like）” 的方式使用引用计�
 
 > A final lock-like example is the need to disable interrupts around calls to `mycpu()` (2187). Disabling interrupts causes the calling code to be atomic with respect to timer interrupts that could force a context switch, and thus move the process to a different CPU.
 
-最后一个类似锁的例子是，需要在 `mycpu()` 调用前后禁用中断 (2187)。禁用中断会导致这段代码不会受定时器中断干扰而具有原子性，因为定时器中断可能强制进行上下文切换，从而将进程移动到不同的 CPU 上。
+最后一个类似锁的例子是，需要在 `mycpu()` 调用前后禁用中断 (2187)。禁用中断会导致这段代码不会受定时器中断干扰而具有原子性，因为定时器中断可能强制触发上下文切换，这会导致进程被移动到不同的 CPU 上。
 
 ## 11.3 完全不上锁（No locks at all）
 
