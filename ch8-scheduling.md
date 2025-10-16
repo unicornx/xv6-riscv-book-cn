@@ -38,7 +38,7 @@ xv6 会在两种情况下将一个处理器上的进程从一个切换到另一�
 
 > Each thread’s `struct proc` includes a `struct context` that holds the thread’s saved registers when it is not running. A CPU’s scheduler thread’s `struct context` is in that CPU’s `struct cpu`. When thread X wishes to switch to thread Y, thread X calls `swtch(&X’s context, &Y’s context)`. `swtch()` saves the current CPU registers in X’s context, then loads the content of Y’s context into the CPU registers, then returns.
 
-每个线程的 `struct proc` 都包含一个 `struct context`，用于存放当一个人线程不在 CPU 上运行时需要保存的寄存器的内容。用于表示一个 CPU 的结构体 `struct cpu` 中也有一个 `struct context` 用于存放每个 CPU 对应的调度线程在其非运行时的需要保存的寄存器的内容。当线程 X 希望切换到线程 Y 时，线程 X 会调用 `swtch(&X’s context, &Y’s context)`。`swtch()` 在返回前将当前 CPU 的寄存器内容保存到 X 的上下文中，然后将 Y 上下文的内容加载到 CPU 寄存器中。
+每个线程的 `struct proc` 都包含一个 `struct context`，用于存放当一个线程不在 CPU 上运行时需要保存的寄存器的内容。用于表示一个 CPU 的结构体 `struct cpu` 中也有一个 `struct context` 用于存放每个 CPU 对应的调度线程在其非运行时的需要保存的寄存器的内容。当线程 X 希望切换到线程 Y 时，线程 X 会调用 `swtch(&X’s context, &Y’s context)`。`swtch()` 在返回前将当前 CPU 的寄存器内容保存到 X 的上下文中，然后将 Y 上下文的内容加载到 CPU 寄存器中。
 
 > Here’s an abbreviated copy of `swtch`:
 
